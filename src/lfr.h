@@ -4,17 +4,38 @@ La Femme Rough - An minimal graph based scripting system for games.
 #ifndef LFR_H
 #define LFR_H
 
-typedef struct lfr_node_id_ {
-	unsigned id;
-} lfr_node_id_t;
-
 typedef enum lfr_instruction_ {
 	lfr_print_own_id,
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
-typedef struct lfr_graph_ {
 
+//// LFR Node ////
+
+typedef struct lfr_node_id_ { unsigned id; } lfr_node_id_t;
+
+enum {lfr_node_max_flow_slots = 4};
+typedef struct lfr_node_ {
+	lfr_instruction_e instruction;
+	lfr_node_id_t flow_slots[lfr_node_max_flow_slots];
+} lfr_node_t;
+
+enum {lfr_node_table_max_rows = 16, lfr_node_table_id_range = 1024};
+typedef struct lfr_node_table_ {
+	// Meta fields
+	unsigned sparse_id[lfr_node_table_id_range];
+	lfr_node_id_t dense_id[lfr_node_table_max_rows];
+	unsigned num_rows, next_id;
+
+	// Data colums
+	lfr_node_t nodes[lfr_node_table_max_rows];
+} lfr_node_table_t;
+
+lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e, lfr_node_table_t*);
+
+/// LFR Graph ////
+typedef struct lfr_graph_ {
+	lfr_node_table_t nodes;
 } lfr_graph_t;
 
 void lfr_init_graph(lfr_graph_t *);
@@ -32,10 +53,23 @@ int lfr_fprint_graph(const lfr_graph_t*, FILE * restrict stream);
 #ifdef LFR_IMPLEMENTATION
 #undef LFR_IMPLEMENTATION
 
+//// Sparce table macros ////
+#define T_HAS_ID(t, r) \
+	((t).sparse_id[(r).id] < (t).num_rows && (t).dense_id[(t).sparse_id[(r).id]].id == (r).id)
+
+#define T_INDEX(t,r) \
+	(assert(T_HAS_ID((t), (r))), (t).sparse_id[(r).id])
+
+#define T_ID(table, index) \
+	(assert( (index) < (table).num_rows), (table).dense_id[index])
+
+//// LFR Graph ////
+
 /**
 Initialize an LFR graph.
 **/
 void lfr_init_graph(lfr_graph_t *graph) {
+	graph->nodes.next_id = 1;
 }
 
 
@@ -50,7 +84,7 @@ void lfr_term_graph(lfr_graph_t *graph) {
 Add a node with the given instruction to the graph.
 **/
 lfr_node_id_t lfr_add_node(lfr_instruction_e inst, lfr_graph_t *graph) {
-	return (lfr_node_id_t){ 0 };
+	return lfr_insert_node_into_table(inst, &graph->nodes);
 }
 
 
@@ -67,6 +101,35 @@ Print graph to file stream.
 int lfr_fprint_graph(const lfr_graph_t *graph, FILE * restrict stream) {
 	return 0;
 }
+
+
+//// LFR Node table ////
+/**
+Insert a new node at the end of the table.
+**/
+lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e inst, lfr_node_table_t *table) {
+	assert(table->num_rows < lfr_node_table_max_rows);
+
+	// Add row to sparse set
+	lfr_node_id_t node_id = {table->next_id++};
+	int index = table->num_rows++;
+	table->sparse_id[node_id.id] = index;
+	table->dense_id[index] = node_id;
+
+	// Set row data
+	table->nodes[index].instruction = inst;
+	for (int i = 0; i < lfr_node_max_flow_slots; i++) {
+		table->nodes[index].flow_slots[i] = (lfr_node_id_t){0};
+	}
+
+	return table->dense_id[index];
+}
+
+
+#undef T_HAS_ID
+#undef T_INDEX
+#undef T_ID
+
 #endif
 
 

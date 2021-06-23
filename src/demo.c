@@ -1,12 +1,13 @@
 /****
 LFR Scripting demo.
 ****/
+#include <assert.h>
 #include <stdio.h>
 
 #include "lfr.h"
 
 int main( int argc, char** argv) {
-	lfr_graph_t graph;
+	lfr_graph_t graph = {0};
 	lfr_init_graph(&graph);
 
 	// Construct graph
