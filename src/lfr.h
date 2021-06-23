@@ -4,11 +4,14 @@ La Femme Rough - An minimal graph based scripting system for games.
 #ifndef LFR_H
 #define LFR_H
 
+//// LFR Instructions ////
+
 typedef enum lfr_instruction_ {
 	lfr_print_own_id,
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
+const char* lfr_get_instruction_name(lfr_instruction_e);
 
 //// LFR Node ////
 
@@ -145,9 +148,10 @@ Print node table content onto file stream.
 int lfr_fprint_node_table(const lfr_node_table_t *table, FILE * restrict stream) {
 	int char_count = 0;
 
-	char_count += fprintf(stream, "|ID\t|Flow slots\t|\n");
+	char_count += fprintf(stream, "|ID\t|LFR Instruction\t|Flow slots\t|\n");
 	T_FOR_ROWS(index, *table) {
 		char_count += fprintf(stream, "|[#%u|%u]\t|", T_ID(*table,index).id, index);
+		char_count += fprintf(stream, "%s\t|", lfr_get_instruction_name(table->nodes[index].instruction));
 		char_count += fprintf(stream, "? ? ? ?\t|");
 		char_count += fprintf(stream, "\n");
 	}
@@ -155,11 +159,20 @@ int lfr_fprint_node_table(const lfr_node_table_t *table, FILE * restrict stream)
 	return char_count;
 }
 
+
+//// LFR Instructions ////
+
+const char* lfr_get_instruction_name(lfr_instruction_e inst) {
+	switch(inst) {
+	case lfr_print_own_id: { return "lfr_print_own_id";}
+	default: { assert(0); return "Unknown LFR Instruction"; }
+	}
+}
+
 #undef T_HAS_ID
 #undef T_INDEX
 #undef T_ID
 #undef T_FOR_ROWS
-
 #endif
 
 
