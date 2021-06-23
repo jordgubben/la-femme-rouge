@@ -88,6 +88,10 @@ int lfr_step(const lfr_graph_t *, lfr_toil_t *);
 #define T_ID(table, index) \
 	(assert( (index) < (table).num_rows), (table).dense_id[index])
 
+/* Compare two ids. True if they are the same. */
+#define T_SAME_ID(a,b) \
+	((a).id == (b).id)
+
 /* Add a new row to the sparse table, returning the index of the row.*/
 #define T_INSERT_ROW(t, id_type) \
 	((t).dense_id[(t).num_rows] = (id_type){(t).next_id}, (t).sparse_id[(t).next_id++] = (t).num_rows++)
@@ -126,6 +130,14 @@ int lfr_step(const lfr_graph_t *graph, lfr_toil_t *toil) {
 	case lfr_print_own_id: { printf("Node ID: [#%u|%u]\n", node_id.id, node_index); } break;
 	default: { assert(0); } break;
 	};
+
+	// Enqueue nodes - Continue flow throgh graph
+	for (int i =0; i < graph->num_flow_links; i++) {
+		const lfr_flow_link_t * link = &graph->flow_links[i];
+		if (T_SAME_ID(link->source_node, node_id) && link->slot == 0) {
+			lfr_schedule(link->target_node, graph, toil);
+		}
+	}
 
 	// Shuffle queue (inefficient)
 	for (int i = 1; i < toil->num_schedueled_nodes; i++) {
