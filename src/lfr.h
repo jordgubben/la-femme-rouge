@@ -20,7 +20,6 @@ typedef struct lfr_node_id_ { unsigned id; } lfr_node_id_t;
 enum {lfr_node_max_flow_slots = 4};
 typedef struct lfr_node_ {
 	lfr_instruction_e instruction;
-	lfr_node_id_t flow_slots[lfr_node_max_flow_slots];
 } lfr_node_t;
 
 enum {lfr_node_table_max_rows = 16, lfr_node_table_id_range = 1024};
@@ -39,8 +38,18 @@ int lfr_fprint_node_table(const lfr_node_table_t*, FILE * restrict);
 
 
 /// LFR Graph ////
+typedef struct lfr_flow_link_ {
+	lfr_node_id_t source_node, target_node;
+	unsigned slot;
+} lfr_flow_link_t;
+
+enum {lfr_graph_max_flow_links = 32};
 typedef struct lfr_graph_ {
 	lfr_node_table_t nodes;
+
+	// Flow links
+	lfr_flow_link_t flow_links[lfr_graph_max_flow_links];
+	unsigned num_flow_links;
 } lfr_graph_t;
 
 void lfr_init_graph(lfr_graph_t *);
@@ -83,6 +92,7 @@ Initialize an LFR graph.
 **/
 void lfr_init_graph(lfr_graph_t *graph) {
 	graph->nodes.next_id = 1;
+	graph->num_flow_links = 0;
 }
 
 
@@ -105,6 +115,9 @@ lfr_node_id_t lfr_add_node(lfr_instruction_e inst, lfr_graph_t *graph) {
 Link execution of one node to another.
 **/
 void lfr_link_nodes(lfr_node_id_t from_node, unsigned slot, lfr_node_id_t to_node, lfr_graph_t *graph) {
+	assert(graph->num_flow_links < lfr_graph_max_flow_links);
+	graph->flow_links[graph->num_flow_links++] =
+		(lfr_flow_link_t) {from_node, to_node, slot};
 }
 
 
@@ -117,6 +130,19 @@ int lfr_fprint_graph(const lfr_graph_t *graph, FILE * restrict stream) {
 	// Nodes in graph
 	char_count += fprintf(stream, "[[ LFR Nodes ]]\n");
 	char_count += lfr_fprint_node_table(&graph->nodes, stream);
+	char_count += fprintf(stream, "\n");
+
+	// Flow links in graph
+	char_count += fprintf(stream, "[[ LFR Flow links ]]\n");
+	char_count += fprintf(stream, "|Source\t|Slot \t|=>|Target\t|\n");
+	for (int i = 0; i < graph->num_flow_links; i++) {
+		const lfr_flow_link_t *link = &graph->flow_links[i];
+		fprintf(stream, "|[#%u|%u]\t|Slot %u\t|=>|[#%u|%u]\t|\n"
+			, link->source_node.id, T_INDEX(graph->nodes, link->source_node)
+			, link->slot
+			, link->target_node.id, T_INDEX(graph->nodes, link->target_node)
+			);
+	}
 	char_count += fprintf(stream, "\n");
 
 	return char_count;
@@ -135,9 +161,6 @@ lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e inst, lfr_node_table_
 
 	// Set row data
 	table->nodes[index].instruction = inst;
-	for (int i = 0; i < lfr_node_max_flow_slots; i++) {
-		table->nodes[index].flow_slots[i] = (lfr_node_id_t){0};
-	}
 
 	return table->dense_id[index];
 }
