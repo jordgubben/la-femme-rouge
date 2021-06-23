@@ -12,7 +12,7 @@ main: $(BIN_DIR)demo
 run: $(BIN_DIR)demo
 	cd $(BIN_DIR) && ./demo
 
-$(BIN_DIR)%: %.c $(BIN_DIR) 
+$(BIN_DIR)%: %.c *.h $(BIN_DIR)
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BIN_DIR):

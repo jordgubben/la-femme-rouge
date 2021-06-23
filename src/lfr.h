@@ -1,19 +1,38 @@
 /****
-LFR Scripting demo.
+La Femme Rough - An minimal graph based scripting system for games.
 ****/
+#ifndef LFR_H
+#define LFR_H
 
-#include "lfr.h"
+typedef struct lfr_graph_ {
 
-int main( int argc, char** argv) {
-	lfr_graph_t graph;
-	lfr_init_graph(&graph);
-	lfr_term_graph(&graph);
-	return 0; 
+} lfr_graph_t;
+
+void lfr_init_graph(lfr_graph_t *);
+void lfr_term_graph(lfr_graph_t *);
+
+#endif
+
+
+/*	==============
+	IMPLEMENTATION
+	============== */
+#ifdef LFR_IMPLEMENTATION
+#undef LFR_IMPLEMENTATION
+
+/**
+Initialize an LFR graph.
+**/
+void lfr_init_graph(lfr_graph_t *graph) {
 }
 
 
-#define LFR_IMPLEMENTATION
-#include "lfr.h"
+/**
+Terminate an LFR graph.
+**/
+void lfr_term_graph(lfr_graph_t *graph) {
+}
+#endif
 
 
 /********************************************************************************
