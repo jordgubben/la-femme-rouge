@@ -68,6 +68,10 @@ int lfr_fprint_graph(const lfr_graph_t*, FILE * restrict stream);
 #define T_ID(table, index) \
 	(assert( (index) < (table).num_rows), (table).dense_id[index])
 
+/* Add a new row to the sparse table, returning the index of the row.*/
+#define T_INSERT_ROW(t, id_type) \
+	((t).dense_id[(t).num_rows] = (id_type){(t).next_id}, (t).sparse_id[(t).next_id++] = (t).num_rows++)
+
 #define T_FOR_ROWS(r,t) \
 	for (unsigned r = 0; r < (t).num_rows; r++)
 
@@ -126,11 +130,8 @@ Insert a new node at the end of the table.
 lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e inst, lfr_node_table_t *table) {
 	assert(table->num_rows < lfr_node_table_max_rows);
 
-	// Add row to sparse set
-	lfr_node_id_t node_id = {table->next_id++};
-	int index = table->num_rows++;
-	table->sparse_id[node_id.id] = index;
-	table->dense_id[index] = node_id;
+	// Insert row into sparse table
+	int index = T_INSERT_ROW(*table, lfr_node_id_t);
 
 	// Set row data
 	table->nodes[index].instruction = inst;
