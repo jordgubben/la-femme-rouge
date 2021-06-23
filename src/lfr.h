@@ -58,6 +58,14 @@ lfr_node_id_t lfr_add_node(lfr_instruction_e, lfr_graph_t *);
 void lfr_link_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
 int lfr_fprint_graph(const lfr_graph_t*, FILE * restrict stream);
 
+
+//// LFR script execution ////
+typedef struct lfr_toil_ {
+} lfr_toil_t;
+
+void lfr_schedule(lfr_node_id_t, const lfr_graph_t *, lfr_toil_t *);
+int lfr_step(const lfr_graph_t *, lfr_toil_t *);
+
 #endif
 
 
@@ -83,6 +91,25 @@ int lfr_fprint_graph(const lfr_graph_t*, FILE * restrict stream);
 
 #define T_FOR_ROWS(r,t) \
 	for (unsigned r = 0; r < (t).num_rows; r++)
+
+
+//// LFR script execution ////
+
+/**
+Enqueue a node to process to the script executions todo-list.
+**/
+void lfr_schedule(lfr_node_id_t node_id, const lfr_graph_t *graph, lfr_toil_t *toil) {
+}
+
+
+/**
+Execute topmost scheduled node (if any) from the script executions todo-list.
+
+Returns number of scheduled nodes, including the one executed.
+**/
+int lfr_step(const lfr_graph_t *graph, lfr_toil_t *toil) {
+	return 0;
+}
 
 
 //// LFR Graph ////

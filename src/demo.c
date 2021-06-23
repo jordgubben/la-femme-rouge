@@ -15,6 +15,12 @@ int main( int argc, char** argv) {
 	lfr_node_id_t n2 = lfr_add_node(lfr_print_own_id, &graph);
 	lfr_link_nodes(n1, 0, n2, &graph);
 	lfr_fprint_graph(&graph, stdout);
+
+	// Run graph (step by step)
+	lfr_toil_t toil = {0};
+	lfr_schedule(n1, &graph, &toil);
+	while (lfr_step(&graph, &toil)) { /* Do nothing */ }
+
 	lfr_term_graph(&graph);
 	return 0; 
 }
