@@ -1,3 +1,10 @@
+## (GNU) Make
+bin/*
+
+## Edit (Vim)
+*.swp
+
+#### GitHub C template ####
 # Prerequisites
 *.d
 
