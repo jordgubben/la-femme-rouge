@@ -32,6 +32,8 @@ typedef struct lfr_node_table_ {
 } lfr_node_table_t;
 
 lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e, lfr_node_table_t*);
+int lfr_fprint_node_table(const lfr_node_table_t*, FILE * restrict);
+
 
 /// LFR Graph ////
 typedef struct lfr_graph_ {
@@ -62,6 +64,10 @@ int lfr_fprint_graph(const lfr_graph_t*, FILE * restrict stream);
 
 #define T_ID(table, index) \
 	(assert( (index) < (table).num_rows), (table).dense_id[index])
+
+#define T_FOR_ROWS(r,t) \
+	for (unsigned r = 0; r < (t).num_rows; r++)
+
 
 //// LFR Graph ////
 
@@ -99,7 +105,14 @@ void lfr_link_nodes(lfr_node_id_t from_node, unsigned slot, lfr_node_id_t to_nod
 Print graph to file stream.
 **/
 int lfr_fprint_graph(const lfr_graph_t *graph, FILE * restrict stream) {
-	return 0;
+	int char_count = 0;
+
+	// Nodes in graph
+	char_count += fprintf(stream, "[[ LFR Nodes ]]\n");
+	char_count += lfr_fprint_node_table(&graph->nodes, stream);
+	char_count += fprintf(stream, "\n");
+
+	return char_count;
 }
 
 
@@ -126,9 +139,26 @@ lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e inst, lfr_node_table_
 }
 
 
+/**
+Print node table content onto file stream.
+**/
+int lfr_fprint_node_table(const lfr_node_table_t *table, FILE * restrict stream) {
+	int char_count = 0;
+
+	char_count += fprintf(stream, "|ID\t|Flow slots\t|\n");
+	T_FOR_ROWS(index, *table) {
+		char_count += fprintf(stream, "|[#%u|%u]\t|", T_ID(*table,index).id, index);
+		char_count += fprintf(stream, "? ? ? ?\t|");
+		char_count += fprintf(stream, "\n");
+	}
+
+	return char_count;
+}
+
 #undef T_HAS_ID
 #undef T_INDEX
 #undef T_ID
+#undef T_FOR_ROWS
 
 #endif
 
