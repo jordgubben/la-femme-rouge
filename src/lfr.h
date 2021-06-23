@@ -60,7 +60,10 @@ int lfr_fprint_graph(const lfr_graph_t*, FILE * restrict stream);
 
 
 //// LFR script execution ////
+enum { lfr_toil_max_queue  = 8};
 typedef struct lfr_toil_ {
+	lfr_node_id_t schedueled_nodes[lfr_toil_max_queue];
+	unsigned num_schedueled_nodes;
 } lfr_toil_t;
 
 void lfr_schedule(lfr_node_id_t, const lfr_graph_t *, lfr_toil_t *);
@@ -99,6 +102,9 @@ int lfr_step(const lfr_graph_t *, lfr_toil_t *);
 Enqueue a node to process to the script executions todo-list.
 **/
 void lfr_schedule(lfr_node_id_t node_id, const lfr_graph_t *graph, lfr_toil_t *toil) {
+	assert(toil->num_schedueled_nodes < lfr_toil_max_queue);
+	assert(T_HAS_ID(graph->nodes, node_id));
+	toil->schedueled_nodes[toil->num_schedueled_nodes++] = node_id;
 }
 
 
@@ -108,7 +114,24 @@ Execute topmost scheduled node (if any) from the script executions todo-list.
 Returns number of scheduled nodes, including the one executed.
 **/
 int lfr_step(const lfr_graph_t *graph, lfr_toil_t *toil) {
-	return 0;
+	if (!toil->num_schedueled_nodes) { return 0; };
+
+	// Find the right node
+	const lfr_node_id_t node_id = toil->schedueled_nodes[0];
+	const unsigned node_index = T_INDEX(graph->nodes, node_id);
+	const lfr_node_t *head = &graph->nodes.nodes[node_index];
+
+	// Process instruction
+	switch (head->instruction) {
+	case lfr_print_own_id: { printf("Node ID: [#%u|%u]\n", node_id.id, node_index); } break;
+	default: { assert(0); } break;
+	};
+
+	// Shuffle queue (inefficient)
+	for (int i = 1; i < toil->num_schedueled_nodes; i++) {
+		toil->schedueled_nodes[i-1] = toil->schedueled_nodes[i];
+	}
+	return toil->num_schedueled_nodes--;
 }
 
 
