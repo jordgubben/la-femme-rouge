@@ -1,12 +1,19 @@
 /****
 LFR Scripting demo.
 ****/
+#include <stdio.h>
 
 #include "lfr.h"
 
 int main( int argc, char** argv) {
 	lfr_graph_t graph;
 	lfr_init_graph(&graph);
+
+	// Construct graph
+	lfr_node_id_t n1 = lfr_add_node(lfr_print_own_id, &graph);
+	lfr_node_id_t n2 = lfr_add_node(lfr_print_own_id, &graph);
+	lfr_link_nodes(n1, 0, n2, &graph);
+	lfr_fprint_graph(&graph, stdout);
 	lfr_term_graph(&graph);
 	return 0; 
 }

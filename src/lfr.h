@@ -4,12 +4,24 @@ La Femme Rough - An minimal graph based scripting system for games.
 #ifndef LFR_H
 #define LFR_H
 
+typedef struct lfr_node_id_ {
+	unsigned id;
+} lfr_node_id_t;
+
+typedef enum lfr_instruction_ {
+	lfr_print_own_id,
+	lfr_no_core_instructions // Not an instruction :P
+} lfr_instruction_e;
+
 typedef struct lfr_graph_ {
 
 } lfr_graph_t;
 
 void lfr_init_graph(lfr_graph_t *);
 void lfr_term_graph(lfr_graph_t *);
+lfr_node_id_t lfr_add_node(lfr_instruction_e, lfr_graph_t *);
+void lfr_link_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
+int lfr_fprint_graph(const lfr_graph_t*, FILE * restrict stream);
 
 #endif
 
@@ -31,6 +43,29 @@ void lfr_init_graph(lfr_graph_t *graph) {
 Terminate an LFR graph.
 **/
 void lfr_term_graph(lfr_graph_t *graph) {
+}
+
+
+/**
+Add a node with the given instruction to the graph.
+**/
+lfr_node_id_t lfr_add_node(lfr_instruction_e inst, lfr_graph_t *graph) {
+	return (lfr_node_id_t){ 0 };
+}
+
+
+/**
+Link execution of one node to another.
+**/
+void lfr_link_nodes(lfr_node_id_t from_node, unsigned slot, lfr_node_id_t to_node, lfr_graph_t *graph) {
+}
+
+
+/**
+Print graph to file stream.
+**/
+int lfr_fprint_graph(const lfr_graph_t *graph, FILE * restrict stream) {
+	return 0;
 }
 #endif
 
