@@ -176,8 +176,9 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph, lfr_toil_t* toil) {
 		if (nk_begin(ctx, title, rect, node_window_flags | highlight_flag)) {
 			nk_layout_row_dynamic(ctx, 0, 2);
 			nk_label(ctx, "Example label", NK_TEXT_LEFT);
-			if (nk_button_label(ctx, "Example button")) {
-				printf("Button [#%u|%u]] pressed!\n", node_ids[index].id, index);
+			if (nk_button_label(ctx, "Schedule me")) {
+				printf("Scheduling node [#%u|%u]].\n", node_id.id, index);
+				lfr_schedule(node_id, graph, toil);
 			}
 
 			// Update node position
