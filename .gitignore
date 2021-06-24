@@ -3,6 +3,7 @@ bin/*
 
 ## Edit (Vim)
 *.swp
+tags
 
 #### GitHub C template ####
 # Prerequisites
