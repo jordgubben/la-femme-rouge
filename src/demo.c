@@ -194,6 +194,7 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph, lfr_toil_t* toil) {
 	// Show node flow
 	if (nk_begin(ctx, "Node editor BG", nk_rect(0,0, 512, 768), NK_WINDOW_BACKGROUND)) {
 		struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+		nk_fill_rect(canvas, nk_window_get_bounds(ctx), 0.f, nk_rgb(20,20,20));
 		for (int i = 0; i < graph->num_flow_links; i++) {
 			const lfr_flow_link_t *link = &graph->flow_links[i];
 			// Source end
