@@ -11,6 +11,21 @@ LFR Scripting demo.
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+// Nuklear
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_IMPLEMENTATION
+#define NK_GLFW_GL3_IMPLEMENTATION
+#define NK_KEYSTATE_BASED_INPUT
+#include "nuklear.h"
+#include "demo/glfw_opengl3/nuklear_glfw_gl3.h"
+
+// La femme rouge
 #include "lfr.h"
 
 #define CHECK_GL(hint) check_gl(hint, __LINE__)
@@ -48,6 +63,9 @@ int main( int argc, char** argv) {
 }
 
 
+#define MAX_VERTEX_BUFFER 512 * 1024
+#define MAX_ELEMENT_BUFFER 128 * 1024
+
 /**
 Run a single window application, where a graph could be rendered.
 **/
@@ -59,12 +77,30 @@ void run_gui(lfr_graph_t* graph) {
 		return;
 	}
 
+	// Init Nuklear
+	struct nk_glfw glfw = {0};
+	struct nk_context *ctx = nk_glfw3_init(&glfw, app.window, NK_GLFW3_INSTALL_CALLBACKS);
+	{
+		struct nk_font_atlas *atlas;
+		nk_glfw3_font_stash_begin(&glfw, &atlas);
+		nk_glfw3_font_stash_end(&glfw);
+	}
+
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(app.window)) {
+		// Prep UI
+		nk_glfw3_new_frame(&glfw);
+
 		// Prepare rendering
+		int width, height;
+		glfwGetWindowSize(app.window, &width, &height);
+		glViewport(0, 0, width, height);
 		glClearColor(.75f, .95f, .75f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		CHECK_GL_OR("Prepare rendering", goto quit);
+
+		// Render UI
+		nk_glfw3_render(&glfw, NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
 
 		// Cooperate with OS
 		glfwSwapBuffers(app.window);
@@ -73,6 +109,7 @@ void run_gui(lfr_graph_t* graph) {
 
 	// Terminate application
 	quit:
+	nk_glfw3_shutdown(&glfw);
 	term_gl_app(&app);
 }
 

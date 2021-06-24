@@ -2,6 +2,7 @@
 # ==================
 CFLAGS=-std=c11 -g
 GLFLAGS=-lglfw -lglew -framework OpenGL
+NKFLAGS=-I../friends/nuklear/
 BIN_DIR=../bin/
 
 
@@ -14,7 +15,7 @@ run: $(BIN_DIR)demo
 	cd $(BIN_DIR) && ./demo
 
 $(BIN_DIR)demo: demo.c *.h $(BIN_DIR)
-	$(CC) $(CFLAGS) $< $(GLFLAGS) -o $@
+	$(CC) $(CFLAGS) $< $(GLFLAGS) $(NKFLAGS) -o $@
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
