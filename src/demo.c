@@ -31,8 +31,8 @@ LFR Scripting demo.
 #define CHECK_GL(hint) check_gl(hint, __LINE__)
 #define CHECK_GL_OR(hint, bail) if(!check_gl(hint, __LINE__)) { bail; }
 
-void run_gui(lfr_graph_t*);
-void show_graph(struct nk_context*, lfr_graph_t *);
+void run_gui(lfr_graph_t *, lfr_toil_t *);
+void show_graph(struct nk_context*, lfr_graph_t *, lfr_toil_t *);
 
 //// GLWF Application
 typedef struct app_ {
@@ -52,12 +52,11 @@ int main( int argc, char** argv) {
 	lfr_link_nodes(n1, 0, n2, &graph);
 	lfr_fprint_graph(&graph, stdout);
 
-	// Run graph (step by step)
+	// Set a starting point in the graph
 	lfr_toil_t toil = {0};
 	lfr_schedule(n1, &graph, &toil);
-	while (lfr_step(&graph, &toil)) { /* Do nothing */ }
 
-	run_gui(&graph);
+	run_gui(&graph, &toil);
 
 	lfr_term_graph(&graph);
 	return 0; 
@@ -70,13 +69,16 @@ int main( int argc, char** argv) {
 /**
 Run a single window application, where a graph could be rendered.
 **/
-void run_gui(lfr_graph_t* graph) {
+void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
 	// Initialize window application
 	app_t app = {0};
 	if(!init_gl_app(1024,768, &app)) {
 		term_gl_app(&app);
 		return;
 	}
+
+	double last_step_time = glfwGetTime();
+	const double time_between_steps = 1.f;
 
 	// Init Nuklear
 	struct nk_glfw glfw = {0};
@@ -89,6 +91,13 @@ void run_gui(lfr_graph_t* graph) {
 
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(app.window)) {
+		// Take a step through the graph now and then
+		double now = glfwGetTime();
+		while (now  > last_step_time + time_between_steps) {
+			last_step_time += time_between_steps;
+			lfr_step(graph, toil);
+		}
+
 		// Prep UI
 		nk_glfw3_new_frame(&glfw);
 
@@ -107,7 +116,7 @@ void run_gui(lfr_graph_t* graph) {
 		}
 		nk_end(ctx);
 
-		show_graph(ctx, graph);
+		show_graph(ctx, graph, toil);
 
 		// Prepare rendering
 		int width, height;
@@ -135,7 +144,9 @@ void run_gui(lfr_graph_t* graph) {
 /**
 Show a script graph using Nuclear widgets.
 **/
-void show_graph(struct nk_context*  ctx, lfr_graph_t *graph) {
+void show_graph(struct nk_context*  ctx, lfr_graph_t *graph, lfr_toil_t* toil) {
+	assert(ctx && graph && toil);
+
 	// Show nodes as individual windows
 	nk_flags node_window_flags = 0
 		| NK_WINDOW_MOVABLE
@@ -158,7 +169,9 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph) {
 		struct nk_rect rect =  nk_rect(pos.x, pos.y, 250, 200);
 
 		// Show the window
-		if (nk_begin(ctx, title, rect, node_window_flags)) {
+		bool highlight = (toil->num_schedueled_nodes && node_id.id ==  toil->schedueled_nodes[0].id);
+		nk_flags highlight_flag = highlight ? NK_WINDOW_BORDER : 0;
+		if (nk_begin(ctx, title, rect, node_window_flags | highlight_flag)) {
 			nk_layout_row_dynamic(ctx, 0, 2);
 			nk_label(ctx, "Example label", NK_TEXT_LEFT);
 			if (nk_button_label(ctx, "Example button")) {
