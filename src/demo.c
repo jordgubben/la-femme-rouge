@@ -91,6 +91,21 @@ void run_gui(lfr_graph_t* graph) {
 		// Prep UI
 		nk_glfw3_new_frame(&glfw);
 
+		// Example window
+		nk_flags window_flags = 0
+			| NK_WINDOW_MOVABLE
+			| NK_WINDOW_SCALABLE
+			| NK_WINDOW_TITLE
+			;
+		if (nk_begin(ctx, "Example window", nk_rect(100,500, 300, 200), window_flags)) {
+			nk_layout_row_dynamic(ctx, 0, 2);
+			nk_label(ctx, "Example label", NK_TEXT_LEFT);
+			if (nk_button_label(ctx, "Example button")) {
+				printf("Button pressed!\n");
+			}
+		}
+		nk_end(ctx);
+
 		// Prepare rendering
 		int width, height;
 		glfwGetWindowSize(app.window, &width, &height);
