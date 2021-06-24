@@ -145,14 +145,16 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph) {
 	lfr_node_id_t *node_ids = &graph->nodes.dense_id[0];
 	int num_nodes = graph->nodes.num_rows;
 	for (int index = 0; index < num_nodes; index++) {
+		lfr_node_id_t node_id = node_ids[index];
+
 		// Window title
 		char title[1024];
 		lfr_instruction_e inst = graph->nodes.node[index].instruction;
 		const char* inst_name = lfr_get_instruction_name(inst);
-		snprintf(title, 1024, "[#%u|%u] %s", node_ids[index].id, index, inst_name);
+		snprintf(title, 1024, "[#%u|%u] %s", node_id.id, index, inst_name);
 
 		// Initial window rect
-		lfr_vec2_t pos = graph->nodes.position[index];
+		lfr_vec2_t pos = lfr_get_node_position(node_id, &graph->nodes);
 		struct nk_rect rect =  nk_rect(pos.x, pos.y, 250, 200);
 
 		// Show the window
@@ -162,6 +164,11 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph) {
 			if (nk_button_label(ctx, "Example button")) {
 				printf("Button [#%u|%u]] pressed!\n", node_ids[index].id, index);
 			}
+
+			// Update node position
+			struct nk_vec2 p = nk_window_get_position(ctx);
+			lfr_vec2_t node_pos = {p.x, p.y};
+			lfr_set_node_position(node_id, node_pos, &graph->nodes);
 		}
 		nk_end(ctx);
 	}

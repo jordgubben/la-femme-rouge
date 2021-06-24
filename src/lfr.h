@@ -39,6 +39,7 @@ typedef struct lfr_node_table_ {
 
 lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e, lfr_node_table_t*);
 lfr_vec2_t lfr_get_node_position(lfr_node_id_t, const lfr_node_table_t *);
+void lfr_set_node_position(lfr_node_id_t, lfr_vec2_t, lfr_node_table_t *);
 int lfr_fprint_node_table(const lfr_node_table_t*, FILE * restrict);
 
 
@@ -242,13 +243,21 @@ lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e inst, lfr_node_table_
 }
 
 
-
 /**
 Get position of a node in the table.
 **/
 lfr_vec2_t lfr_get_node_position(lfr_node_id_t id, const lfr_node_table_t *table) {
 	return table->position[T_INDEX(*table, id)];
 }
+
+
+/**
+Set position of a node in the table.
+**/
+void lfr_set_node_position(lfr_node_id_t id, lfr_vec2_t pos, lfr_node_table_t *table) {
+	table->position[T_INDEX(*table, id)] = pos;
+}
+
 
 /**
 Print node table content onto file stream.
