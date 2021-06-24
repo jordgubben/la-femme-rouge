@@ -1,0 +1,3 @@
+[submodule "friends/nuklear"]
+	path = friends/nuklear
+	url = https://github.com/Immediate-Mode-UI/Nuklear.git
