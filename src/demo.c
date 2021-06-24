@@ -165,6 +165,26 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph) {
 		}
 		nk_end(ctx);
 	}
+
+	// Show node flow
+	if (nk_begin(ctx, "Node editor BG", nk_rect(0,0, 512, 768), NK_WINDOW_BACKGROUND)) {
+		struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+		for (int i = 0; i < graph->num_flow_links; i++) {
+			const lfr_flow_link_t *link = &graph->flow_links[i];
+			// Source end
+			lfr_vec2_t p1 = lfr_get_node_position(link->source_node, &graph->nodes);
+			p1.x += 250;
+			p1.y += 10;
+
+			// Target end
+			lfr_vec2_t p2 = lfr_get_node_position(link->target_node, &graph->nodes);
+			p2.y += 10;
+
+			// Draw line
+			nk_stroke_line(canvas, p1.x, p1.y, p2.x,p2.y, 2.f, nk_rgb(100,100,100));
+		}
+	}
+	nk_end(ctx);
 }
 
 
