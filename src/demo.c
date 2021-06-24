@@ -33,6 +33,7 @@ LFR Scripting demo.
 
 void run_gui(lfr_graph_t *, lfr_toil_t *);
 void show_graph(struct nk_context*, lfr_graph_t *, lfr_toil_t *);
+void show_toil_queue(struct nk_context*, lfr_graph_t *, lfr_toil_t *);
 
 //// GLWF Application
 typedef struct app_ {
@@ -119,6 +120,7 @@ void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
 		nk_end(ctx);
 
 		show_graph(ctx, graph, toil);
+		show_toil_queue(ctx, graph, toil);
 
 		// Prepare rendering
 		int width, height;
@@ -210,6 +212,30 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph, lfr_toil_t* toil) {
 	nk_end(ctx);
 }
 
+
+/**
+Show queued nodes.
+**/
+void show_toil_queue(struct nk_context *ctx, lfr_graph_t *graph, lfr_toil_t *toil) {
+	assert(ctx && graph && toil);
+	// Example window
+	nk_flags window_flags = 0
+		| NK_WINDOW_MOVABLE
+		| NK_WINDOW_SCALABLE
+		| NK_WINDOW_TITLE
+		;
+	if (nk_begin(ctx, "Queued nodes", nk_rect(500,500, 300, 200), window_flags)) {
+		nk_layout_row_dynamic(ctx, 0, 1);
+		for (int i = 0 ; i < toil->num_schedueled_nodes; i++) {
+			lfr_node_id_t node_id = toil->schedueled_nodes[i];
+			unsigned index = graph->nodes.sparse_id[node_id.id];
+			char label[1024];
+			snprintf(label, 1024, "Node [#%u|%u]", node_id.id, index);
+			nk_label(ctx, label, NK_TEXT_LEFT);
+		}
+	}
+	nk_end(ctx);
+}
 
 //// Application ////
 

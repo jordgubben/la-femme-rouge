@@ -111,11 +111,14 @@ int lfr_step(const lfr_graph_t *, lfr_toil_t *);
 //// LFR script execution ////
 
 /**
-Enqueue a node to process to the script executions todo-list.
+Enqueue a node to process to the script executions todo-list (as long as there is space left in the queue).
 **/
 void lfr_schedule(lfr_node_id_t node_id, const lfr_graph_t *graph, lfr_toil_t *toil) {
-	assert(toil->num_schedueled_nodes < lfr_toil_max_queue);
 	assert(T_HAS_ID(graph->nodes, node_id));
+	if (toil->num_schedueled_nodes >= lfr_toil_max_queue) {
+		fprintf(stderr, "%s(): Node queue is full!\n", __func__);
+		return;
+	}
 	toil->schedueled_nodes[toil->num_schedueled_nodes++] = node_id;
 }
 
