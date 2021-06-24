@@ -147,7 +147,7 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph) {
 	for (int index = 0; index < num_nodes; index++) {
 		// Window title
 		char title[1024];
-		lfr_instruction_e inst = graph->nodes.nodes[index].instruction;
+		lfr_instruction_e inst = graph->nodes.node[index].instruction;
 		const char* inst_name = lfr_get_instruction_name(inst);
 		snprintf(title, 1024, "[#%u|%u] %s", node_ids[index].id, index, inst_name);
 

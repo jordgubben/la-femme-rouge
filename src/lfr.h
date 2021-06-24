@@ -33,7 +33,7 @@ typedef struct lfr_node_table_ {
 	unsigned num_rows, next_id;
 
 	// Data colums
-	lfr_node_t nodes[lfr_node_table_max_rows];
+	lfr_node_t node[lfr_node_table_max_rows];
 	lfr_vec2_t position[lfr_node_table_max_rows];
 } lfr_node_table_t;
 
@@ -129,7 +129,7 @@ int lfr_step(const lfr_graph_t *graph, lfr_toil_t *toil) {
 	// Find the right node
 	const lfr_node_id_t node_id = toil->schedueled_nodes[0];
 	const unsigned node_index = T_INDEX(graph->nodes, node_id);
-	const lfr_node_t *head = &graph->nodes.nodes[node_index];
+	const lfr_node_t *head = &graph->nodes.node[node_index];
 
 	// Process instruction
 	switch (head->instruction) {
@@ -234,7 +234,7 @@ lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e inst, lfr_node_table_
 	int index = T_INSERT_ROW(*table, lfr_node_id_t);
 
 	// Set row data
-	table->nodes[index].instruction = inst;
+	table->node[index].instruction = inst;
 	table->position[index] = (lfr_vec2_t) { 0, 0};
 
 	return table->dense_id[index];
@@ -250,7 +250,7 @@ int lfr_fprint_node_table(const lfr_node_table_t *table, FILE * restrict stream)
 	char_count += fprintf(stream, "|ID\t|LFR Instruction\t|Flow slots\t|\n");
 	T_FOR_ROWS(index, *table) {
 		char_count += fprintf(stream, "|[#%u|%u]\t|", T_ID(*table,index).id, index);
-		char_count += fprintf(stream, "%s\t|", lfr_get_instruction_name(table->nodes[index].instruction));
+		char_count += fprintf(stream, "%s\t|", lfr_get_instruction_name(table->node[index].instruction));
 		char_count += fprintf(stream, "? ? ? ?\t|");
 		char_count += fprintf(stream, "\n");
 	}
