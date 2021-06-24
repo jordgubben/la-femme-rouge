@@ -32,6 +32,7 @@ LFR Scripting demo.
 #define CHECK_GL_OR(hint, bail) if(!check_gl(hint, __LINE__)) { bail; }
 
 void run_gui(lfr_graph_t*);
+void show_graph(struct nk_context*, lfr_graph_t *);
 
 //// GLWF Application
 typedef struct app_ {
@@ -106,6 +107,8 @@ void run_gui(lfr_graph_t* graph) {
 		}
 		nk_end(ctx);
 
+		show_graph(ctx, graph);
+
 		// Prepare rendering
 		int width, height;
 		glfwGetWindowSize(app.window, &width, &height);
@@ -128,6 +131,38 @@ void run_gui(lfr_graph_t* graph) {
 	term_gl_app(&app);
 }
 
+
+/**
+Show a script graph using Nuclear widgets.
+**/
+void show_graph(struct nk_context*  ctx, lfr_graph_t *graph) {
+	// Show nodes as individual windows
+	nk_flags node_window_flags = 0
+		| NK_WINDOW_MOVABLE
+		| NK_WINDOW_SCALABLE
+		| NK_WINDOW_TITLE
+		;
+	lfr_node_id_t *node_ids = &graph->nodes.dense_id[0];
+	int num_nodes = graph->nodes.num_rows;
+	for (int index = 0; index < num_nodes; index++) {
+		char title[1024];
+		lfr_instruction_e inst = graph->nodes.nodes[index].instruction;
+		const char* inst_name = lfr_get_instruction_name(inst);
+		snprintf(title, 1024, "[#%u|%u] %s", node_ids[index].id, index, inst_name);
+		struct nk_rect rect =  nk_rect(100 + index * 300, 100, 250, 200);
+		if (nk_begin(ctx, title, rect, node_window_flags)) {
+			nk_layout_row_dynamic(ctx, 0, 2);
+			nk_label(ctx, "Example label", NK_TEXT_LEFT);
+			if (nk_button_label(ctx, "Example button")) {
+				printf("Button [#%u|%u]] pressed!\n", node_ids[index].id, index);
+			}
+		}
+		nk_end(ctx);
+	}
+}
+
+
+//// Application ////
 
 /**
 Init application, giving us a GLFW window to render to with OpenGL.
