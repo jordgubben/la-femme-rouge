@@ -1,6 +1,7 @@
 # General settings #
 # ==================
 CFLAGS=-std=c11 -g
+GLFLAGS=-lglfw -lglew -framework OpenGL
 BIN_DIR=../bin/
 
 
@@ -12,8 +13,8 @@ main: $(BIN_DIR)demo
 run: $(BIN_DIR)demo
 	cd $(BIN_DIR) && ./demo
 
-$(BIN_DIR)%: %.c *.h $(BIN_DIR)
-	$(CC) $(CFLAGS) $< -o $@
+$(BIN_DIR)demo: demo.c *.h $(BIN_DIR)
+	$(CC) $(CFLAGS) $< $(GLFLAGS) -o $@
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)

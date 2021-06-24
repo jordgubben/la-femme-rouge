@@ -1,10 +1,30 @@
 /****
 LFR Scripting demo.
 ****/
+
+// LIBC
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 
+// OpenGl et.al.
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
 #include "lfr.h"
+
+#define CHECK_GL(hint) check_gl(hint, __LINE__)
+#define CHECK_GL_OR(hint, bail) if(!check_gl(hint, __LINE__)) { bail; }
+
+void run_gui(lfr_graph_t*);
+
+//// GLWF Application
+typedef struct app_ {
+	GLFWwindow* window;
+} app_t;
+bool init_gl_app(int, int, app_t*);
+void term_gl_app(app_t*);
+bool check_gl(const char* hint, int line);
 
 int main( int argc, char** argv) {
 	lfr_graph_t graph = {0};
@@ -21,8 +41,124 @@ int main( int argc, char** argv) {
 	lfr_schedule(n1, &graph, &toil);
 	while (lfr_step(&graph, &toil)) { /* Do nothing */ }
 
+	run_gui(&graph);
+
 	lfr_term_graph(&graph);
 	return 0; 
+}
+
+
+/**
+Run a single window application, where a graph could be rendered.
+**/
+void run_gui(lfr_graph_t* graph) {
+	// Initialize window application
+	app_t app = {0};
+	if(!init_gl_app(1024,768, &app)) {
+		term_gl_app(&app);
+		return;
+	}
+
+	// Keep the motor runnin
+	while(!glfwWindowShouldClose(app.window)) {
+		// Prepare rendering
+		glClearColor(.75f, .95f, .75f, 1.f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		CHECK_GL_OR("Prepare rendering", goto quit);
+
+		// Cooperate with OS
+		glfwSwapBuffers(app.window);
+		glfwPollEvents();
+	}
+
+	// Terminate application
+	quit:
+	term_gl_app(&app);
+}
+
+
+/**
+Init application, giving us a GLFW window to render to with OpenGL.
+**/
+bool init_gl_app(int width, int heigt, app_t* app) {
+	void error_callback(int error, const char* description);
+	void describe_gl_driver();
+
+	assert(app);
+	app->window = NULL;
+
+	// Start up GLFW
+	glfwSetErrorCallback(error_callback);
+	if (!glfwInit()) {
+		fprintf(stderr, "Failed to init GLFW!\n");
+		return false;
+	}
+
+	// Create window with (recent) OpenGL
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	app->window = glfwCreateWindow(width, heigt, "Minimal GLFW window", NULL, NULL);
+	if (!app->window) {
+		fprintf(stderr, "Failed to create GLFW window!\n");
+		glfwTerminate();
+		return false;
+	}
+	glfwMakeContextCurrent(app->window);
+	glfwSwapInterval(1);
+	glewInit();
+	describe_gl_driver();
+
+	// All went well
+	return true;
+}
+
+
+/**
+GLFW Callback - Print GLFW errors to stderr.
+**/
+void error_callback(int error, const char* description) {
+	fprintf(stderr, "GLFW Error #%0d '%s'\n", error, description);
+}
+
+
+/**
+Check that there are no OpenGL errors.
+**/
+bool check_gl(const char* hint, int line) {
+	bool ok = true;
+	GLenum e = glGetError();
+	while( e != GL_NO_ERROR)  {
+		ok = false;
+		fprintf(stderr, "OpenGL failed to '%s' due to error code [0x%x] after line [%d].\n", hint, e, line);
+		e = glGetError();
+	}
+	return ok;
+}
+
+
+/**
+Print information about OpenGL to stdout.
+**/
+void describe_gl_driver() {
+	printf("OpenGL\n======\n");
+	printf("Vendor: %s\n", glGetString( GL_VENDOR ));
+	printf("Renderer: %s\n", glGetString( GL_RENDERER ));
+	printf("OpenGL Version: %s\n", glGetString( GL_VERSION ));
+	printf("GLSL Version: %s\n", glGetString( GL_SHADING_LANGUAGE_VERSION ));
+	printf("Extention  #0: %s\n", glGetStringi( GL_EXTENSIONS, 0 ));
+	printf("=======\n\n");
+	CHECK_GL("Describe connections");
+}
+
+
+/**
+Terminate application.
+**/
+void term_gl_app(app_t* app) {
+	if (app->window) { glfwDestroyWindow(app->window); }
+	glfwTerminate();
 }
 
 
