@@ -145,11 +145,17 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph) {
 	lfr_node_id_t *node_ids = &graph->nodes.dense_id[0];
 	int num_nodes = graph->nodes.num_rows;
 	for (int index = 0; index < num_nodes; index++) {
+		// Window title
 		char title[1024];
 		lfr_instruction_e inst = graph->nodes.nodes[index].instruction;
 		const char* inst_name = lfr_get_instruction_name(inst);
 		snprintf(title, 1024, "[#%u|%u] %s", node_ids[index].id, index, inst_name);
-		struct nk_rect rect =  nk_rect(100 + index * 300, 100, 250, 200);
+
+		// Initial window rect
+		lfr_vec2_t pos = graph->nodes.position[index];
+		struct nk_rect rect =  nk_rect(pos.x, pos.y, 250, 200);
+
+		// Show the window
 		if (nk_begin(ctx, title, rect, node_window_flags)) {
 			nk_layout_row_dynamic(ctx, 0, 2);
 			nk_label(ctx, "Example label", NK_TEXT_LEFT);

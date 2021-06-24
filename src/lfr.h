@@ -4,6 +4,9 @@ La Femme Rough - An minimal graph based scripting system for games.
 #ifndef LFR_H
 #define LFR_H
 
+//// LFR Base types ////
+typedef struct lfr_vec2_ { float x,y; } lfr_vec2_t;
+
 //// LFR Instructions ////
 
 typedef enum lfr_instruction_ {
@@ -31,6 +34,7 @@ typedef struct lfr_node_table_ {
 
 	// Data colums
 	lfr_node_t nodes[lfr_node_table_max_rows];
+	lfr_vec2_t position[lfr_node_table_max_rows];
 } lfr_node_table_t;
 
 lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e, lfr_node_table_t*);
@@ -45,7 +49,9 @@ typedef struct lfr_flow_link_ {
 
 enum {lfr_graph_max_flow_links = 32};
 typedef struct lfr_graph_ {
+	// Nodes
 	lfr_node_table_t nodes;
+	lfr_vec2_t next_node_pos;
 
 	// Flow links
 	lfr_flow_link_t flow_links[lfr_graph_max_flow_links];
@@ -155,6 +161,7 @@ Initialize an LFR graph.
 void lfr_init_graph(lfr_graph_t *graph) {
 	graph->nodes.next_id = 1;
 	graph->num_flow_links = 0;
+	graph->next_node_pos = (lfr_vec2_t) {100,100};
 }
 
 
@@ -167,9 +174,14 @@ void lfr_term_graph(lfr_graph_t *graph) {
 
 /**
 Add a node with the given instruction to the graph.
+
+Node is positioned to the right of the last node in the table.
 **/
 lfr_node_id_t lfr_add_node(lfr_instruction_e inst, lfr_graph_t *graph) {
-	return lfr_insert_node_into_table(inst, &graph->nodes);
+	lfr_node_id_t id = lfr_insert_node_into_table(inst, &graph->nodes);
+	graph->nodes.position[graph->nodes.num_rows - 1] = graph->next_node_pos;
+	graph->next_node_pos.x += 260;
+	return id;
 }
 
 
@@ -223,6 +235,7 @@ lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e inst, lfr_node_table_
 
 	// Set row data
 	table->nodes[index].instruction = inst;
+	table->position[index] = (lfr_vec2_t) { 0, 0};
 
 	return table->dense_id[index];
 }
