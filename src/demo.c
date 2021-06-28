@@ -39,6 +39,9 @@ typedef enum editor_mode_ {
 
 typedef struct app_ {
 	GLFWwindow* window;
+	struct nk_context *ctx;
+	editor_mode_e mode;
+	lfr_node_id_t active_node_id;
 } app_t;
 
 // GL basics
@@ -48,7 +51,8 @@ bool check_gl(const char* hint, int line);
 
 // Editor
 void run_gui(lfr_graph_t *, lfr_toil_t *);
-void show_graph(app_t * app, struct nk_context*, lfr_graph_t *, lfr_toil_t *);
+void show_graph(app_t * app, lfr_graph_t *, lfr_toil_t *);
+void show_individual_node_window(lfr_node_id_t, lfr_graph_t *, lfr_toil_t *, app_t *);
 void show_toil_queue(struct nk_context*, lfr_graph_t *, lfr_toil_t *);
 
 int main( int argc, char** argv) {
@@ -94,6 +98,7 @@ void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
 	// Init Nuklear
 	struct nk_glfw glfw = {0};
 	struct nk_context *ctx = nk_glfw3_init(&glfw, app.window, NK_GLFW3_INSTALL_CALLBACKS);
+	app.ctx = ctx;
 	{
 		struct nk_font_atlas *atlas;
 		nk_glfw3_font_stash_begin(&glfw, &atlas);
@@ -127,7 +132,7 @@ void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
 		}
 		nk_end(ctx);
 
-		show_graph(&app, ctx, graph, toil);
+		show_graph(&app, graph, toil);
 		show_toil_queue(ctx, graph, toil);
 
 		// Prepare rendering
@@ -156,92 +161,16 @@ void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
 /**
 Show a script graph using Nuclear widgets.
 **/
-void show_graph(app_t *app, struct nk_context*  ctx, lfr_graph_t *graph, lfr_toil_t* toil) {
-	assert(app && ctx && graph && toil);
-
-	static editor_mode_e mode = em_normal;
-	static lfr_node_id_t active_node_id = {0};
+void show_graph(app_t *app, lfr_graph_t *graph, lfr_toil_t* toil) {
+	assert(app && graph && toil);
+	struct nk_context *ctx = app->ctx;
 
 	// Show nodes as individual windows
-	nk_flags node_window_flags = 0
-		| NK_WINDOW_MOVABLE
-		| NK_WINDOW_SCALABLE
-		| NK_WINDOW_TITLE
-		;
 	lfr_node_id_t *node_ids = &graph->nodes.dense_id[0];
 	int num_nodes = graph->nodes.num_rows;
 	for (int index = 0; index < num_nodes; index++) {
 		lfr_node_id_t node_id = node_ids[index];
-
-		// Window title
-		char title[1024];
-		lfr_instruction_e inst = graph->nodes.node[index].instruction;
-		const char* inst_name = lfr_get_instruction_name(inst);
-		snprintf(title, 1024, "[#%u|%u] %s", node_id.id, index, inst_name);
-
-		// Initial window rect
-		lfr_vec2_t pos = lfr_get_node_position(node_id, &graph->nodes);
-		struct nk_rect rect =  nk_rect(pos.x, pos.y, 250, 200);
-
-		// Show the window
-		bool highlight = (toil->num_schedueled_nodes && node_id.id ==  toil->schedueled_nodes[0].id);
-		nk_flags highlight_flag = highlight ? NK_WINDOW_BORDER : 0;
-		if (nk_begin(ctx, title, rect, node_window_flags | highlight_flag)) {
-			// Flow linking
-			switch(mode) {
-				case em_normal: {
-					nk_layout_row_dynamic(ctx, 0, 2);
-					if (nk_button_label(ctx, "Prev?")){
-						mode = em_select_flow_prev;
-						active_node_id = node_id;
-						printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, index);
-					}
-					if (nk_button_label(ctx, "Next?")) {
-						mode = em_select_flow_next;
-						active_node_id = node_id;
-						printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, index);
-					}
-				} break;
-
-				case em_select_flow_prev: {
-					nk_layout_row_dynamic(ctx, 0, 2);
-					nk_label(ctx, "...", NK_TEXT_CENTERED);
-					if (nk_button_label(ctx, "This!")){
-						lfr_link_nodes(node_id, 0, active_node_id, graph);
-						mode = em_normal;
-						active_node_id = (lfr_node_id_t){ 0 };
-						printf("Linked node to [#%u|%u]].\n", node_id.id, index);
-					}
-				}break;
-
-				case em_select_flow_next: {
-					nk_layout_row_dynamic(ctx, 0, 2);
-					if (nk_button_label(ctx, "This!")){
-						lfr_link_nodes(active_node_id, 0, node_id, graph);
-						mode = em_normal;
-						active_node_id = (lfr_node_id_t){ 0 };
-						printf("Linked node to [#%u|%u]].\n", node_id.id, index);
-					}
-					nk_label(ctx, "...", NK_TEXT_CENTERED);
-				}break;
-
-				case no_em_modes: assert(0);  break; // Not a mode :P
-			}
-
-			// Scheduling
-			nk_layout_row_dynamic(ctx, 0, 2);
-			nk_label(ctx, "Example label", NK_TEXT_LEFT);
-			if (nk_button_label(ctx, "Schedule me")) {
-				printf("Scheduling node [#%u|%u]].\n", node_id.id, index);
-				lfr_schedule(node_id, graph, toil);
-			}
-
-			// Update node position
-			struct nk_vec2 p = nk_window_get_position(ctx);
-			lfr_vec2_t node_pos = {p.x, p.y};
-			lfr_set_node_position(node_id, node_pos, &graph->nodes);
-		}
-		nk_end(ctx);
+		show_individual_node_window(node_id, graph, toil, app);
 	}
 
 	// Show node flow
@@ -267,9 +196,9 @@ void show_graph(app_t *app, struct nk_context*  ctx, lfr_graph_t *graph, lfr_toi
 		}
 
 		// Select previous node in flow
-		if (mode == em_select_flow_prev && active_node_id.id) {
+		if (app->mode == em_select_flow_prev && app->active_node_id.id) {
 			// Connected end
-			lfr_vec2_t target_p = lfr_get_node_position(active_node_id, &graph->nodes);
+			lfr_vec2_t target_p = lfr_get_node_position(app->active_node_id, &graph->nodes);
 			target_p.y += 20;
 
 			// Mouse end
@@ -281,9 +210,9 @@ void show_graph(app_t *app, struct nk_context*  ctx, lfr_graph_t *graph, lfr_toi
 		}
 
 		// Select next node in flow
-		if (mode == em_select_flow_next && active_node_id.id) {
+		if (app->mode == em_select_flow_next && app->active_node_id.id) {
 			// Connected end
-			lfr_vec2_t source_p = lfr_get_node_position(active_node_id, &graph->nodes);
+			lfr_vec2_t source_p = lfr_get_node_position(app->active_node_id, &graph->nodes);
 			source_p.x += 250;
 			source_p.y += 20;
 
@@ -294,6 +223,91 @@ void show_graph(app_t *app, struct nk_context*  ctx, lfr_graph_t *graph, lfr_toi
 			// Signify mode
 			nk_stroke_line(canvas, source_p.x, source_p.y, mouse_x, mouse_y, 5.f, nk_rgb(150,200,100));
 		}
+	}
+	nk_end(ctx);
+}
+
+
+/**
+Show the window for an individual graph node.
+**/
+void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_toil_t *toil, app_t *app) {
+	struct nk_context *ctx = app->ctx;
+
+	unsigned index = lfr_get_node_index(node_id, &graph->nodes);
+
+	// Window title
+	char title[1024];
+	lfr_instruction_e inst = graph->nodes.node[index].instruction;
+	const char* inst_name = lfr_get_instruction_name(inst);
+	snprintf(title, 1024, "[#%u|%u] %s", node_id.id, index, inst_name);
+
+	// Initial window rect
+	lfr_vec2_t pos = lfr_get_node_position(node_id, &graph->nodes);
+	struct nk_rect rect =  nk_rect(pos.x, pos.y, 250, 200);
+
+	// Show the window
+	bool highlight = (toil->num_schedueled_nodes && node_id.id ==  toil->schedueled_nodes[0].id);
+	nk_flags flags = 0
+		| NK_WINDOW_MOVABLE
+		| NK_WINDOW_SCALABLE
+		| NK_WINDOW_TITLE
+		| (highlight ? NK_WINDOW_BORDER : 0);
+		;
+	if (nk_begin(ctx, title, rect, flags)) {
+		// Flow linking
+		switch(app->mode) {
+			case em_normal: {
+				nk_layout_row_dynamic(ctx, 0, 2);
+				if (nk_button_label(ctx, "Prev?")){
+					app->mode = em_select_flow_prev;
+					app->active_node_id = node_id;
+					printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, index);
+				}
+				if (nk_button_label(ctx, "Next?")) {
+					app->mode = em_select_flow_next;
+					app->active_node_id = node_id;
+					printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, index);
+				}
+			} break;
+
+			case em_select_flow_prev: {
+				nk_layout_row_dynamic(ctx, 0, 2);
+				nk_label(ctx, "...", NK_TEXT_CENTERED);
+				if (nk_button_label(ctx, "This!")){
+					lfr_link_nodes(node_id, 0, app->active_node_id, graph);
+					app->mode = em_normal;
+					app->active_node_id = (lfr_node_id_t){ 0 };
+					printf("Linked node to [#%u|%u]].\n", node_id.id, index);
+				}
+			}break;
+
+			case em_select_flow_next: {
+				nk_layout_row_dynamic(ctx, 0, 2);
+				if (nk_button_label(ctx, "This!")){
+					lfr_link_nodes(app->active_node_id, 0, node_id, graph);
+					app->mode = em_normal;
+					app->active_node_id = (lfr_node_id_t){ 0 };
+					printf("Linked node to [#%u|%u]].\n", node_id.id, index);
+				}
+				nk_label(ctx, "...", NK_TEXT_CENTERED);
+			}break;
+
+			case no_em_modes: assert(0);  break; // Not a mode :P
+		}
+
+		// Scheduling
+		nk_layout_row_dynamic(ctx, 0, 2);
+		nk_label(ctx, "Example label", NK_TEXT_LEFT);
+		if (nk_button_label(ctx, "Schedule me")) {
+			printf("Scheduling node [#%u|%u]].\n", node_id.id, index);
+			lfr_schedule(node_id, graph, toil);
+		}
+
+		// Update node position
+		struct nk_vec2 p = nk_window_get_position(ctx);
+		lfr_vec2_t node_pos = {p.x, p.y};
+		lfr_set_node_position(node_id, node_pos, &graph->nodes);
 	}
 	nk_end(ctx);
 }
