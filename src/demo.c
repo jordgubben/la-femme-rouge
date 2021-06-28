@@ -198,14 +198,17 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph, lfr_toil_t* toil) {
 			// Source end
 			lfr_vec2_t p1 = lfr_get_node_position(link->source_node, &graph->nodes);
 			p1.x += 250;
-			p1.y += 10;
+			p1.y += 20;
 
 			// Target end
 			lfr_vec2_t p2 = lfr_get_node_position(link->target_node, &graph->nodes);
-			p2.y += 10;
+			p2.y += 20;
 
 			// Draw line
-			nk_stroke_line(canvas, p1.x, p1.y, p2.x,p2.y, 2.f, nk_rgb(100,100,100));
+			const float ex = 75;
+			nk_stroke_curve(canvas,
+				p1.x, p1.y, p1.x + ex, p1.y, p2.x - ex, p2.y, p2.x, p2.y,
+				2.f, nk_rgb(100,100,100));
 		}
 	}
 	nk_end(ctx);
