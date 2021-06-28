@@ -6,16 +6,21 @@ NKFLAGS=-I../friends/nuklear/
 BIN_DIR=../bin/
 
 
-# Build things #
-# ============ #
+# Build & run things #
+# ================== #
 .phony: main run
 main: $(BIN_DIR)demo
 
 run: $(BIN_DIR)demo
 	cd $(BIN_DIR) && ./demo
 
-$(BIN_DIR)demo: demo.c *.h $(BIN_DIR)
-	$(CC) $(CFLAGS) $< $(GLFLAGS) $(NKFLAGS) -o $@
+# Build demo application
+$(BIN_DIR)demo: demo.c *.h $(BIN_DIR) _nk.o
+	$(CC) $(CFLAGS) $<  _nk.o $(GLFLAGS) $(NKFLAGS) -o $@
+
+# Compile nuklear implementation separately
+_nk.o: impl_nk.c
+	$(CC) -c $(CFLAGS) $(NKFLAGS) $< -o $@
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
