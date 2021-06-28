@@ -29,17 +29,27 @@ LFR Scripting demo.
 #define CHECK_GL(hint) check_gl(hint, __LINE__)
 #define CHECK_GL_OR(hint, bail) if(!check_gl(hint, __LINE__)) { bail; }
 
-void run_gui(lfr_graph_t *, lfr_toil_t *);
-void show_graph(struct nk_context*, lfr_graph_t *, lfr_toil_t *);
-void show_toil_queue(struct nk_context*, lfr_graph_t *, lfr_toil_t *);
 
-//// GLWF Application
+typedef enum editor_mode_ {
+	em_normal,
+	em_select_flow_prev,
+	em_select_flow_next,
+	no_em_modes // Not a mode :P
+} editor_mode_e;
+
 typedef struct app_ {
 	GLFWwindow* window;
 } app_t;
+
+// GL basics
 bool init_gl_app(int, int, app_t*);
 void term_gl_app(app_t*);
 bool check_gl(const char* hint, int line);
+
+// Editor
+void run_gui(lfr_graph_t *, lfr_toil_t *);
+void show_graph(app_t * app, struct nk_context*, lfr_graph_t *, lfr_toil_t *);
+void show_toil_queue(struct nk_context*, lfr_graph_t *, lfr_toil_t *);
 
 int main( int argc, char** argv) {
 	lfr_graph_t graph = {0};
@@ -117,7 +127,7 @@ void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
 		}
 		nk_end(ctx);
 
-		show_graph(ctx, graph, toil);
+		show_graph(&app, ctx, graph, toil);
 		show_toil_queue(ctx, graph, toil);
 
 		// Prepare rendering
@@ -146,8 +156,11 @@ void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
 /**
 Show a script graph using Nuclear widgets.
 **/
-void show_graph(struct nk_context*  ctx, lfr_graph_t *graph, lfr_toil_t* toil) {
-	assert(ctx && graph && toil);
+void show_graph(app_t *app, struct nk_context*  ctx, lfr_graph_t *graph, lfr_toil_t* toil) {
+	assert(app && ctx && graph && toil);
+
+	static editor_mode_e mode = em_normal;
+	static lfr_node_id_t active_node_id = {0};
 
 	// Show nodes as individual windows
 	nk_flags node_window_flags = 0
@@ -174,6 +187,48 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph, lfr_toil_t* toil) {
 		bool highlight = (toil->num_schedueled_nodes && node_id.id ==  toil->schedueled_nodes[0].id);
 		nk_flags highlight_flag = highlight ? NK_WINDOW_BORDER : 0;
 		if (nk_begin(ctx, title, rect, node_window_flags | highlight_flag)) {
+			// Flow linking
+			switch(mode) {
+				case em_normal: {
+					nk_layout_row_dynamic(ctx, 0, 2);
+					if (nk_button_label(ctx, "Prev?")){
+						mode = em_select_flow_prev;
+						active_node_id = node_id;
+						printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, index);
+					}
+					if (nk_button_label(ctx, "Next?")) {
+						mode = em_select_flow_next;
+						active_node_id = node_id;
+						printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, index);
+					}
+				} break;
+
+				case em_select_flow_prev: {
+					nk_layout_row_dynamic(ctx, 0, 2);
+					nk_label(ctx, "...", NK_TEXT_CENTERED);
+					if (nk_button_label(ctx, "This!")){
+						lfr_link_nodes(node_id, 0, active_node_id, graph);
+						mode = em_normal;
+						active_node_id = (lfr_node_id_t){ 0 };
+						printf("Linked node to [#%u|%u]].\n", node_id.id, index);
+					}
+				}break;
+
+				case em_select_flow_next: {
+					nk_layout_row_dynamic(ctx, 0, 2);
+					if (nk_button_label(ctx, "This!")){
+						lfr_link_nodes(active_node_id, 0, node_id, graph);
+						mode = em_normal;
+						active_node_id = (lfr_node_id_t){ 0 };
+						printf("Linked node to [#%u|%u]].\n", node_id.id, index);
+					}
+					nk_label(ctx, "...", NK_TEXT_CENTERED);
+				}break;
+
+				case no_em_modes: assert(0);  break; // Not a mode :P
+			}
+
+			// Scheduling
 			nk_layout_row_dynamic(ctx, 0, 2);
 			nk_label(ctx, "Example label", NK_TEXT_LEFT);
 			if (nk_button_label(ctx, "Schedule me")) {
@@ -209,6 +264,35 @@ void show_graph(struct nk_context*  ctx, lfr_graph_t *graph, lfr_toil_t* toil) {
 			nk_stroke_curve(canvas,
 				p1.x, p1.y, p1.x + ex, p1.y, p2.x - ex, p2.y, p2.x, p2.y,
 				2.f, nk_rgb(100,100,100));
+		}
+
+		// Select previous node in flow
+		if (mode == em_select_flow_prev && active_node_id.id) {
+			// Connected end
+			lfr_vec2_t target_p = lfr_get_node_position(active_node_id, &graph->nodes);
+			target_p.y += 20;
+
+			// Mouse end
+			double mouse_x, mouse_y;
+			glfwGetCursorPos(app->window, &mouse_x, &mouse_y);
+
+			// Signify mode
+			nk_stroke_line(canvas, mouse_x, mouse_y, target_p.x, target_p.y, 5.f, nk_rgb(200,150,100));
+		}
+
+		// Select next node in flow
+		if (mode == em_select_flow_next && active_node_id.id) {
+			// Connected end
+			lfr_vec2_t source_p = lfr_get_node_position(active_node_id, &graph->nodes);
+			source_p.x += 250;
+			source_p.y += 20;
+
+			// Mouse end
+			double mouse_x, mouse_y;
+			glfwGetCursorPos(app->window, &mouse_x, &mouse_y);
+
+			// Signify mode
+			nk_stroke_line(canvas, source_p.x, source_p.y, mouse_x, mouse_y, 5.f, nk_rgb(150,200,100));
 		}
 	}
 	nk_end(ctx);
