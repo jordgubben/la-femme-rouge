@@ -9,7 +9,7 @@ BIN_DIR=../bin/
 # Build & run things #
 # ================== #
 .phony: main run
-main: $(BIN_DIR)demo
+main: $(BIN_DIR)demo tags
 
 run: $(BIN_DIR)demo
 	cd $(BIN_DIR) && ./demo
