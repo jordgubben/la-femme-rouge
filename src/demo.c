@@ -285,7 +285,7 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 				char label[128];
 				snprintf(label, 128, "(x) [#%u]", link->source_node.id);
 				if (nk_button_label(ctx, label)) {
-					printf("Pressed '%s'\n", label);
+					lfr_unlink_nodes(link->source_node, 0, link->target_node, graph);
 				}
 			}
 			nk_group_end(ctx);
