@@ -236,6 +236,7 @@ void lfr_unlink_nodes(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t ta
 
 		// Remove (breaking order)
 		graph->flow_links[i] = graph->flow_links[--graph->num_flow_links];
+		return;
 	}
 }
 
