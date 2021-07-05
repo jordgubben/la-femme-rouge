@@ -272,7 +272,26 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 		| (highlight ? NK_WINDOW_BORDER : 0);
 		;
 	if (nk_begin(ctx, title, rect, flags)) {
-		// Flow linking
+		nk_layout_row_dynamic(ctx, 50, 2);
+		if (nk_group_begin(ctx, "Input flow links", 0)) {
+			nk_layout_row_dynamic(ctx, 15, 1);
+
+			// For each link targeting this node
+			for (int i = 0; i < graph->num_flow_links; i++) {
+				lfr_flow_link_t *link = &graph->flow_links[i];
+				if (link->target_node.id != node_id.id) { continue; }
+
+				// 'Remove link' button
+				char label[128];
+				snprintf(label, 128, "(x) [#%u]", link->source_node.id);
+				if (nk_button_label(ctx, label)) {
+					printf("Pressed '%s'\n", label);
+				}
+			}
+			nk_group_end(ctx);
+		}
+
+		// New flow linking
 		switch(app->mode) {
 			case em_normal: {
 				nk_layout_row_dynamic(ctx, 0, 2);
