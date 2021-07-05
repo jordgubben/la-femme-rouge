@@ -195,10 +195,21 @@ lfr_node_id_t lfr_add_node(lfr_instruction_e inst, lfr_graph_t *graph) {
 /**
 Link execution of one node to another.
 **/
-void lfr_link_nodes(lfr_node_id_t from_node, unsigned slot, lfr_node_id_t to_node, lfr_graph_t *graph) {
+void lfr_link_nodes(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t target_node, lfr_graph_t *graph) {
 	assert(graph->num_flow_links < lfr_graph_max_flow_links);
-	graph->flow_links[graph->num_flow_links++] =
-		(lfr_flow_link_t) {from_node, to_node, slot};
+
+	// Prevent duplicates
+	for (int i = 0; i < graph->num_flow_links; i++) {
+		lfr_flow_link_t *link = &graph->flow_links[i];
+		if ( !T_SAME_ID(source_node, link->source_node)) { continue; }
+		if ( slot != link->slot) { continue; }
+		if ( !T_SAME_ID(target_node, link->target_node)) { continue; }
+
+		return;
+	}
+
+	// Add (non-duplicate link)
+	graph->flow_links[graph->num_flow_links++] = (lfr_flow_link_t) {source_node, target_node, slot};
 }
 
 
