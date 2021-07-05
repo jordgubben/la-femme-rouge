@@ -65,6 +65,7 @@ void lfr_init_graph(lfr_graph_t *);
 void lfr_term_graph(lfr_graph_t *);
 lfr_node_id_t lfr_add_node(lfr_instruction_e, lfr_graph_t *);
 void lfr_link_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
+bool lfr_has_link(lfr_node_id_t, unsigned, lfr_node_id_t, const lfr_graph_t*);
 void lfr_unlink_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
 int lfr_fprint_graph(const lfr_graph_t*, FILE * restrict stream);
 
@@ -199,17 +200,27 @@ void lfr_link_nodes(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t targ
 	assert(graph->num_flow_links < lfr_graph_max_flow_links);
 
 	// Prevent duplicates
+	if (lfr_has_link(source_node, slot, target_node, graph)) { return; };
+
+	// Add (non-duplicate link)
+	graph->flow_links[graph->num_flow_links++] = (lfr_flow_link_t) {source_node, target_node, slot};
+}
+
+
+/**
+Is there a linke from one node to the other?
+**/
+bool lfr_has_link(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t target_node, const lfr_graph_t *graph) {
 	for (int i = 0; i < graph->num_flow_links; i++) {
-		lfr_flow_link_t *link = &graph->flow_links[i];
+		const lfr_flow_link_t *link = &graph->flow_links[i];
 		if ( !T_SAME_ID(source_node, link->source_node)) { continue; }
 		if ( slot != link->slot) { continue; }
 		if ( !T_SAME_ID(target_node, link->target_node)) { continue; }
 
-		return;
+		return true;
 	}
 
-	// Add (non-duplicate link)
-	graph->flow_links[graph->num_flow_links++] = (lfr_flow_link_t) {source_node, target_node, slot};
+	return false;
 }
 
 

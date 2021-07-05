@@ -308,25 +308,23 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 			} break;
 
 			case em_select_flow_prev: {
-				nk_layout_row_dynamic(ctx, 0, 2);
-				nk_label(ctx, "...", NK_TEXT_CENTERED);
-				if (nk_button_label(ctx, "This!")){
+				if (lfr_has_link(node_id, 0, app->active_node_id, graph)) { break; }
+				nk_layout_row_dynamic(ctx, 0, 1);
+				if (nk_button_label(ctx, "Link with this!")){
 					lfr_link_nodes(node_id, 0, app->active_node_id, graph);
 					app->mode = em_normal;
 					app->active_node_id = (lfr_node_id_t){ 0 };
-					printf("Linked node to [#%u|%u]].\n", node_id.id, index);
 				}
 			}break;
 
 			case em_select_flow_next: {
-				nk_layout_row_dynamic(ctx, 0, 2);
-				if (nk_button_label(ctx, "This!")){
+				if (lfr_has_link(app->active_node_id, 0, node_id, graph)) { break; }
+				nk_layout_row_dynamic(ctx, 0, 1);
+				if (nk_button_label(ctx, "Link with this!")){
 					lfr_link_nodes(app->active_node_id, 0, node_id, graph);
 					app->mode = em_normal;
 					app->active_node_id = (lfr_node_id_t){ 0 };
-					printf("Linked node to [#%u|%u]].\n", node_id.id, index);
 				}
-				nk_label(ctx, "...", NK_TEXT_CENTERED);
 			}break;
 
 			case no_em_modes: assert(0);  break; // Not a mode :P
