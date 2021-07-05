@@ -240,8 +240,14 @@ void show_graph(app_t *app, lfr_graph_t *graph, lfr_toil_t* toil) {
 			// Signify mode
 			nk_stroke_line(canvas, source_p.x, source_p.y, mouse_x, mouse_y, 5.f, nk_rgb(150,200,100));
 		}
+
 	}
 	nk_end(ctx);
+
+	// Return editor to 'normal' mode by clicking on background
+	if (nk_window_is_active(ctx, "Node editor BG") && app->mode != em_normal) {
+		app->mode = em_normal;
+	}
 }
 
 
