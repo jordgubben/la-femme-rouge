@@ -272,8 +272,9 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 		| (highlight ? NK_WINDOW_BORDER : 0);
 		;
 	if (nk_begin(ctx, title, rect, flags)) {
-		nk_layout_row_dynamic(ctx, 50, 2);
-		if (nk_group_begin(ctx, "Input flow links", 0)) {
+		unsigned flow_section_heigh = 10 + 20 * lfr_count_node_target_links(node_id, graph);
+		nk_layout_row_dynamic(ctx, flow_section_heigh, 2);
+		if (nk_group_begin(ctx, "Flow link targets", NK_WINDOW_NO_SCROLLBAR)) {
 			nk_layout_row_dynamic(ctx, 15, 1);
 
 			// For each link targeting this node

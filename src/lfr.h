@@ -64,9 +64,14 @@ typedef struct lfr_graph_ {
 void lfr_init_graph(lfr_graph_t *);
 void lfr_term_graph(lfr_graph_t *);
 lfr_node_id_t lfr_add_node(lfr_instruction_e, lfr_graph_t *);
+
+// Link CRUD
 void lfr_link_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
 bool lfr_has_link(lfr_node_id_t, unsigned, lfr_node_id_t, const lfr_graph_t*);
+unsigned lfr_count_node_target_links(lfr_node_id_t, const lfr_graph_t*);
 void lfr_unlink_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
+
+// Printing
 int lfr_fprint_graph(const lfr_graph_t*, FILE * restrict stream);
 
 
@@ -223,6 +228,21 @@ bool lfr_has_link(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t target
 	return false;
 }
 
+
+
+/**
+How many links have this node as target?
+**/
+unsigned lfr_count_node_target_links(lfr_node_id_t target_node, const lfr_graph_t *graph) {
+	unsigned count = 0;
+
+	for (int i = 0; i < graph->num_flow_links; i++) {
+		const lfr_flow_link_t *link = &graph->flow_links[i];
+		if ( T_SAME_ID(target_node, link->target_node)) { count++; }
+	}
+
+	return count;
+}
 
 /**
 Break execution link from one node to another.
