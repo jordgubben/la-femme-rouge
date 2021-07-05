@@ -129,6 +129,23 @@ void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
 			if (nk_button_label(ctx, "Example button")) {
 				printf("Button pressed!\n");
 			}
+
+			// Group inside window
+			nk_layout_row_dynamic(ctx, 75, 1);
+			nk_flags group_flags = 0
+				| NK_WINDOW_TITLE
+				;
+			if (nk_group_begin(ctx, "Example group", group_flags)) {
+				nk_layout_row_dynamic(ctx, 25, 3);
+				nk_label(ctx, "Label L", NK_TEXT_LEFT);
+				nk_label(ctx, "Label C", NK_TEXT_CENTERED);
+				nk_label(ctx, "Label R", NK_TEXT_RIGHT);
+				nk_group_end(ctx);
+			}
+
+			// Label after group
+			nk_layout_row_dynamic(ctx, 0, 1);
+			nk_label(ctx, "~ After group ~", NK_TEXT_CENTERED);
 		}
 		nk_end(ctx);
 
