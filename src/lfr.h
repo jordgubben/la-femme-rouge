@@ -45,7 +45,7 @@ lfr_vec2_t lfr_get_node_position(lfr_node_id_t, const lfr_node_table_t *);
 void lfr_set_node_position(lfr_node_id_t, lfr_vec2_t, lfr_node_table_t *);
 
 // Node serialization
-int lfr_dump_node_table_to_file(const lfr_node_table_t*, FILE * restrict);
+int lfr_save_node_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
 
 
 /// LFR Graph ////
@@ -77,9 +77,9 @@ unsigned lfr_count_node_target_links(lfr_node_id_t, const lfr_graph_t*);
 void lfr_unlink_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
 
 // Graph serialization
-void lfr_parse_graph_from_file(FILE * restrict stream, lfr_graph_t *graph);
-int lfr_dump_graph_to_file(const lfr_graph_t *, FILE * restrict stream);
-int lfr_dump_links_to_file(const lfr_graph_t *, FILE * restrict stream);
+void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph);
+int lfr_save_graph_to_file(const lfr_graph_t *, FILE * restrict stream);
+int lfr_save_links_to_file(const lfr_graph_t *, FILE * restrict stream);
 
 
 //// LFR script execution ////
@@ -290,7 +290,7 @@ void lfr_unlink_nodes(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t ta
 /**
 Load graph content from (tab separated) file.
 **/
-void lfr_parse_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
+void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
 	char line_buf[1024];
 	while (fgets(line_buf, 1024, stream)) {
 		// Get line type
@@ -328,12 +328,12 @@ void lfr_parse_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
 /**
 Dump graph to file in a parsable (tab-separated) format.
 **/
-int lfr_dump_graph_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
+int lfr_save_graph_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
 	int char_count = 0;
 
 	// Dump things
-	char_count += lfr_dump_node_table_to_file(&graph->nodes, stream);
-	char_count += lfr_dump_links_to_file(graph, stream);
+	char_count += lfr_save_node_table_to_file(&graph->nodes, stream);
+	char_count += lfr_save_links_to_file(graph, stream);
 
 	return char_count;
 }
@@ -342,7 +342,7 @@ int lfr_dump_graph_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
 /**
 Dump main flow links in a parsable (tab-separated) format.
 **/
-int lfr_dump_links_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
+int lfr_save_links_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
 	int char_count = 0;
 
 	// Flow links in graph
@@ -402,7 +402,7 @@ void lfr_set_node_position(lfr_node_id_t id, lfr_vec2_t pos, lfr_node_table_t *t
 /**
 Print node table content onto file stream in a parser friendly (tab separated) format.
 **/
-int lfr_dump_node_table_to_file(const lfr_node_table_t *table, FILE * restrict stream) {
+int lfr_save_node_table_to_file(const lfr_node_table_t *table, FILE * restrict stream) {
 	int char_count = 0;
 
 	T_FOR_ROWS(index, *table) {

@@ -67,9 +67,9 @@ int main( int argc, char** argv) {
 
 	// Optionally read graph script from file
 	if (argc > 1) {
-		printf("Reading from file: %s\n", argv[1]);
+		printf("Loading graph from file: %s\n", argv[1]);
 		FILE * fp = fopen(argv[1], "r");
-		lfr_parse_graph_from_file(fp, &graph);
+		lfr_load_graph_from_file(fp, &graph);
 		fclose(fp);
 	} else {
 		// Construct graph
@@ -88,7 +88,7 @@ int main( int argc, char** argv) {
 	if (argc > 1) {
 		printf("Saving graph to file: %s\n", argv[1]);
 		FILE * fp = fopen(argv[1], "w");
-		lfr_dump_graph_to_file(&graph, fp);
+		lfr_save_graph_to_file(&graph, fp);
 		fclose(fp);
 	}
 
