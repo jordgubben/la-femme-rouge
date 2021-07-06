@@ -15,6 +15,7 @@ typedef enum lfr_instruction_ {
 } lfr_instruction_e;
 
 const char* lfr_get_instruction_name(lfr_instruction_e);
+lfr_instruction_e lfr_find_instruction_from_name(const char* name);
 
 //// LFR Node ////
 
@@ -300,14 +301,18 @@ void lfr_parse_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
 		if (strlen(type_buf) == 0) {
 			/* Skip if empty */
 		} else if (strcmp(type_buf, "node") == 0) {
-			LFR_TRACE("Parsing '%s' as a node.", line_buf);
-
-			unsigned id;
+			// Parse instruction
+			lfr_node_id_t expected_id;
 			char inst_buf[32];
-			float px, py;
-			sscanf(line_buf, "node #%u %s (%f,%f)", &id, inst_buf, &px, &py);
+			lfr_vec2_t pos;
+			sscanf(line_buf, "node #%u %s (%f,%f)", &expected_id.id, inst_buf, &pos.x, &pos.y);
 
-			LFR_TRACE("Node: #%u %s (%f, %f)", id, inst_buf, px, py);
+			// Add instruction
+			lfr_instruction_e instruction = lfr_find_instruction_from_name(inst_buf);
+			lfr_node_id_t new_id = lfr_insert_node_into_table(instruction, &graph->nodes);
+			assert(T_SAME_ID(new_id, expected_id));
+			lfr_set_node_position(new_id, pos, &graph->nodes);
+
 		} else if (strcmp(type_buf, "link") == 0) {
 			LFR_TRACE("Parsing '%s' as a link", line_buf);
 
@@ -430,6 +435,21 @@ const char* lfr_get_instruction_name(lfr_instruction_e inst) {
 	default: { assert(0); return "Unknown LFR Instruction"; }
 	}
 }
+
+
+lfr_instruction_e lfr_find_instruction_from_name(const char* name) {
+	for (int i = 0; i < lfr_no_core_instructions; i++) {
+		if (strcmp(name, lfr_get_instruction_name(i)) == 0) {
+			return i;
+		}
+	}
+
+	// Warn, then fallback to intruction that does not do much at all
+	const lfr_instruction_e fallback = lfr_print_own_id;
+	printf("Unknown instruction '%s' substituted by '%s'\n", name, lfr_get_instruction_name(fallback));
+	return fallback;
+}
+
 
 #undef T_HAS_ID
 #undef T_INDEX
