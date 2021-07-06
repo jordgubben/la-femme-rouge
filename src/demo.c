@@ -216,6 +216,8 @@ void show_graph(app_t *app, lfr_graph_t *graph, lfr_toil_t* toil) {
 Show the window for an individual graph node.
 **/
 void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_toil_t *toil, app_t *app) {
+	void show_node_main_flow_section(lfr_node_id_t, lfr_graph_t *, struct nk_context *);
+	assert(graph && toil && app);
 	struct nk_context *ctx = app->ctx;
 
 	unsigned index = lfr_get_node_index(node_id, &graph->nodes);
@@ -239,51 +241,7 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 		| (highlight ? NK_WINDOW_BORDER : 0);
 		;
 	if (nk_begin(ctx, title, rect, flags)) {
-		unsigned sl_count = lfr_count_node_source_links(node_id, graph);
-		unsigned tl_count = lfr_count_node_target_links(node_id, graph);
-		unsigned max_links = (sl_count > tl_count ? sl_count : tl_count);
-		unsigned flow_section_heigh = 10 + 20 * max_links;
-
-		//  Existing flow link section
-		nk_layout_row_dynamic(ctx, flow_section_heigh, 2);
-
-		// Flow links where node is target
-		if (nk_group_begin(ctx, "Flow link targets", NK_WINDOW_NO_SCROLLBAR)) {
-			nk_layout_row_dynamic(ctx, 15, 1);
-
-			// For each link targeting this node
-			for (int i = 0; i < graph->num_flow_links; i++) {
-				lfr_flow_link_t *link = &graph->flow_links[i];
-				if (link->target_node.id != node_id.id) { continue; }
-
-				// 'Remove link' button
-				char label[128];
-				snprintf(label, 128, "(x) [#%u]", link->source_node.id);
-				if (nk_button_label(ctx, label)) {
-					lfr_unlink_nodes(link->source_node, 0, link->target_node, graph);
-				}
-			}
-			nk_group_end(ctx);
-		}
-
-		// Flow links where node is source
-		if (nk_group_begin(ctx, "Flow link source", NK_WINDOW_NO_SCROLLBAR)) {
-			nk_layout_row_dynamic(ctx, 15, 1);
-
-			// For each link source node
-			for (int i = 0; i < graph->num_flow_links; i++) {
-				lfr_flow_link_t *link = &graph->flow_links[i];
-				if (link->source_node.id != node_id.id) { continue; }
-
-				// 'Remove link' button
-				char label[128];
-				snprintf(label, 128, "[#%u] (x)", link->target_node.id);
-				if (nk_button_label(ctx, label)) {
-					lfr_unlink_nodes(link->source_node, 0, link->target_node, graph);
-				}
-			}
-			nk_group_end(ctx);
-		}
+		show_node_main_flow_section(node_id, graph, ctx);
 
 		// New flow link section
 		switch(app->mode) {
@@ -338,6 +296,60 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 		lfr_set_node_position(node_id, node_pos, &graph->nodes);
 	}
 	nk_end(ctx);
+}
+
+
+/*
+Show all links involved in the given nodes main flow.
+*/
+void show_node_main_flow_section(lfr_node_id_t node_id, lfr_graph_t *graph, struct nk_context *ctx) {
+	unsigned sl_count = lfr_count_node_source_links(node_id, graph);
+	unsigned tl_count = lfr_count_node_target_links(node_id, graph);
+	unsigned max_links = (sl_count > tl_count ? sl_count : tl_count);
+	unsigned flow_section_heigh = 10 + 20 * max_links;
+
+	//  Existing flow link section
+	nk_layout_row_dynamic(ctx, flow_section_heigh, 2);
+
+	// Flow links where node is target
+	if (nk_group_begin(ctx, "Flow link targets", NK_WINDOW_NO_SCROLLBAR)) {
+		nk_layout_row_dynamic(ctx, 15, 1);
+
+		// For each link targeting this node
+		for (int i = 0; i < graph->num_flow_links; i++) {
+			lfr_flow_link_t *link = &graph->flow_links[i];
+			if (link->target_node.id != node_id.id) { continue; }
+
+			// 'Remove link' button
+			char label[128];
+			snprintf(label, 128, "(x) [#%u]", link->source_node.id);
+			if (nk_button_label(ctx, label)) {
+				lfr_unlink_nodes(link->source_node, 0, link->target_node, graph);
+			}
+		}
+
+		nk_group_end(ctx);
+	}
+
+	// Flow links where node is source
+	if (nk_group_begin(ctx, "Flow link source", NK_WINDOW_NO_SCROLLBAR)) {
+		nk_layout_row_dynamic(ctx, 15, 1);
+
+		// For each link source node
+		for (int i = 0; i < graph->num_flow_links; i++) {
+			lfr_flow_link_t *link = &graph->flow_links[i];
+			if (link->source_node.id != node_id.id) { continue; }
+
+			// 'Remove link' button
+			char label[128];
+			snprintf(label, 128, "[#%u] (x)", link->target_node.id);
+			if (nk_button_label(ctx, label)) {
+				lfr_unlink_nodes(link->source_node, 0, link->target_node, graph);
+			}
+		}
+
+		nk_group_end(ctx);
+	}
 }
 
 
