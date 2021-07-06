@@ -314,12 +314,11 @@ void lfr_parse_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
 			lfr_set_node_position(new_id, pos, &graph->nodes);
 
 		} else if (strcmp(type_buf, "link") == 0) {
-			LFR_TRACE("Parsing '%s' as a link", line_buf);
+			// Parse and create link
+			lfr_node_id_t source, target;
+			sscanf(line_buf, "link #%u -> #%u", &source.id, &target.id);
+			lfr_link_nodes(source, 0, target, graph);
 
-			unsigned source, target;
-			sscanf(line_buf, "link #%u -> #%u", &source, &target);
-
-			LFR_TRACE("Link: #%u -> #%u", source, target);
 		} else {
 			fprintf(stderr, "Unknown type '%s'\n", type_buf);
 		}
