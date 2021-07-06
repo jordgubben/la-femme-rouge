@@ -37,11 +37,14 @@ typedef struct lfr_node_table_ {
 	lfr_vec2_t position[lfr_node_table_max_rows];
 } lfr_node_table_t;
 
+// Node CRUD
 lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e, lfr_node_table_t*);
 unsigned lfr_get_node_index(lfr_node_id_t, const lfr_node_table_t *);
 lfr_vec2_t lfr_get_node_position(lfr_node_id_t, const lfr_node_table_t *);
 void lfr_set_node_position(lfr_node_id_t, lfr_vec2_t, lfr_node_table_t *);
-int lfr_fprint_node_table(const lfr_node_table_t*, FILE * restrict);
+
+// Node serialization
+int lfr_dump_node_table_to_file(const lfr_node_table_t*, FILE * restrict);
 
 
 /// LFR Graph ////
@@ -72,8 +75,9 @@ unsigned lfr_count_node_source_links(lfr_node_id_t, const lfr_graph_t*);
 unsigned lfr_count_node_target_links(lfr_node_id_t, const lfr_graph_t*);
 void lfr_unlink_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
 
-// Printing
-int lfr_fprint_graph(const lfr_graph_t*, FILE * restrict stream);
+// Graph serialization
+int lfr_dump_graph_to_file(const lfr_graph_t *, FILE * restrict stream);
+int lfr_dump_links_to_file(const lfr_graph_t *, FILE * restrict stream);
 
 
 //// LFR script execution ////
@@ -277,34 +281,39 @@ void lfr_unlink_nodes(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t ta
 
 
 /**
-Print graph to file stream.
+Dump graph to file in a parsable (tab-separated) format.
 **/
-int lfr_fprint_graph(const lfr_graph_t *graph, FILE * restrict stream) {
+int lfr_dump_graph_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
 	int char_count = 0;
 
-	// Nodes in graph
-	char_count += fprintf(stream, "[[ LFR Nodes ]]\n");
-	char_count += lfr_fprint_node_table(&graph->nodes, stream);
-	char_count += fprintf(stream, "\n");
+	// Dump things
+	char_count += lfr_dump_node_table_to_file(&graph->nodes, stream);
+	char_count += lfr_dump_links_to_file(graph, stream);
+
+	return char_count;
+}
+
+
+/**
+Dump main flow links in a parsable (tab-separated) format.
+**/
+int lfr_dump_links_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
+	int char_count = 0;
 
 	// Flow links in graph
-	char_count += fprintf(stream, "[[ LFR Flow links ]]\n");
-	char_count += fprintf(stream, "|Source\t|Slot \t|=>|Target\t|\n");
 	for (int i = 0; i < graph->num_flow_links; i++) {
 		const lfr_flow_link_t *link = &graph->flow_links[i];
-		fprintf(stream, "|[#%u|%u]\t|Slot %u\t|=>|[#%u|%u]\t|\n"
-			, link->source_node.id, T_INDEX(graph->nodes, link->source_node)
-			, link->slot
-			, link->target_node.id, T_INDEX(graph->nodes, link->target_node)
-			);
+		char_count += fprintf(stream, "link\t");
+		char_count += fprintf(stream, "#%u -> #%u\t", link->source_node.id, link->target_node.id);
+		char_count += fprintf(stream, "\n");
 	}
-	char_count += fprintf(stream, "\n");
 
 	return char_count;
 }
 
 
 //// LFR Node table ////
+
 /**
 Insert a new node at the end of the table.
 **/
@@ -346,16 +355,25 @@ void lfr_set_node_position(lfr_node_id_t id, lfr_vec2_t pos, lfr_node_table_t *t
 
 
 /**
-Print node table content onto file stream.
+Print node table content onto file stream in a parser friendly (tab separated) format.
 **/
-int lfr_fprint_node_table(const lfr_node_table_t *table, FILE * restrict stream) {
+int lfr_dump_node_table_to_file(const lfr_node_table_t *table, FILE * restrict stream) {
 	int char_count = 0;
 
-	char_count += fprintf(stream, "|ID\t|LFR Instruction\t|Flow slots\t|\n");
 	T_FOR_ROWS(index, *table) {
-		char_count += fprintf(stream, "|[#%u|%u]\t|", T_ID(*table,index).id, index);
-		char_count += fprintf(stream, "%s\t|", lfr_get_instruction_name(table->node[index].instruction));
-		char_count += fprintf(stream, "? ? ? ?\t|");
+		char_count += fprintf(stream, "node\t");
+
+		// ID
+		lfr_node_id_t node_id = T_ID(*table,index);
+		char_count += fprintf(stream, "#%u\t", node_id.id);
+
+		// Instruction
+		char_count += fprintf(stream, "%s\t", lfr_get_instruction_name(table->node[index].instruction));
+
+		// Position
+		lfr_vec2_t pos = lfr_get_node_position(node_id, table);
+		char_count += fprintf(stream, "(%f, %f)\t", pos.x, pos.y);
+
 		char_count += fprintf(stream, "\n");
 	}
 

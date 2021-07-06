@@ -70,13 +70,14 @@ int main( int argc, char** argv) {
 	lfr_node_id_t n3 = lfr_add_node(lfr_print_own_id, &graph);
 	lfr_link_nodes(n1, 0, n2, &graph);
 	lfr_link_nodes(n1, 0, n3, &graph);
-	lfr_fprint_graph(&graph, stdout);
 
 	// Set a starting point in the graph
 	lfr_toil_t toil = {0};
 	lfr_schedule(n1, &graph, &toil);
 
 	run_gui(&graph, &toil);
+
+	lfr_dump_graph_to_file(&graph, stdout);
 
 	lfr_term_graph(&graph);
 	return 0; 
