@@ -68,6 +68,7 @@ lfr_node_id_t lfr_add_node(lfr_instruction_e, lfr_graph_t *);
 // Link CRUD
 void lfr_link_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
 bool lfr_has_link(lfr_node_id_t, unsigned, lfr_node_id_t, const lfr_graph_t*);
+unsigned lfr_count_node_source_links(lfr_node_id_t, const lfr_graph_t*);
 unsigned lfr_count_node_target_links(lfr_node_id_t, const lfr_graph_t*);
 void lfr_unlink_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
 
@@ -228,6 +229,20 @@ bool lfr_has_link(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t target
 	return false;
 }
 
+
+/**
+How many links have this node as source?
+**/
+unsigned lfr_count_node_source_links(lfr_node_id_t source_node, const lfr_graph_t *graph) {
+	unsigned count = 0;
+
+	for (int i = 0; i < graph->num_flow_links; i++) {
+		const lfr_flow_link_t *link = &graph->flow_links[i];
+		if ( T_SAME_ID(source_node, link->source_node)) { count++; }
+	}
+
+	return count;
+}
 
 
 /**
