@@ -241,7 +241,11 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 		| (highlight ? NK_WINDOW_BORDER : 0);
 		;
 	if (nk_begin(ctx, title, rect, flags)) {
-		show_node_main_flow_section(node_id, graph, ctx);
+		if (nk_tree_push_id(ctx, NK_TREE_NODE, "Main flow", NK_MAXIMIZED, node_id.id)){
+			show_node_main_flow_section(node_id, graph, ctx);
+
+			nk_tree_pop(ctx);
+		}
 
 		// New flow link section
 		switch(app->mode) {
