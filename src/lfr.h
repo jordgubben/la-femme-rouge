@@ -121,6 +121,11 @@ int lfr_step(const lfr_graph_t *, lfr_toil_t *);
 	for (unsigned r = 0; r < (t).num_rows; r++)
 
 
+//// Utility macros ////
+/* Log from a function, including the function name in the string. */
+#define LFR_TRACE(m, ...) \
+	printf("# %s():\t" m "\n", __func__, __VA_ARGS__);
+
 //// LFR script execution ////
 
 /**
@@ -394,6 +399,7 @@ const char* lfr_get_instruction_name(lfr_instruction_e inst) {
 #undef T_INDEX
 #undef T_ID
 #undef T_FOR_ROWS
+#undef LFR_TRACE
 #endif
 
 
