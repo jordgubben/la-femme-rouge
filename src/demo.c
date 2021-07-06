@@ -242,14 +242,8 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 		;
 	if (nk_begin(ctx, title, rect, flags)) {
 		if (nk_tree_push_id(ctx, NK_TREE_NODE, "Main flow", NK_MAXIMIZED, node_id.id)){
-			show_node_main_flow_section(node_id, graph, ctx);
-
-			nk_tree_pop(ctx);
-		}
-
-		// New flow link section
-		switch(app->mode) {
-			case em_normal: {
+			// Add new links
+			if (app->mode == em_normal) {
 				nk_layout_row_dynamic(ctx, 0, 2);
 				if (nk_button_label(ctx, "Prev?")){
 					app->mode = em_select_flow_prev;
@@ -261,7 +255,16 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 					app->active_node_id = node_id;
 					printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, index);
 				}
-			} break;
+			}
+
+			show_node_main_flow_section(node_id, graph, ctx);
+
+			nk_tree_pop(ctx);
+		}
+
+		// New flow link section
+		switch(app->mode) {
+			case em_normal: {/* Do nothing */} break;
 
 			case em_select_flow_prev: {
 				if (lfr_has_link(node_id, 0, app->active_node_id, graph)) { break; }
