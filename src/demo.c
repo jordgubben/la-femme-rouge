@@ -29,6 +29,7 @@ LFR Scripting demo.
 #define CHECK_GL(hint) check_gl(hint, __LINE__)
 #define CHECK_GL_OR(hint, bail) if(!check_gl(hint, __LINE__)) { bail; }
 
+const char *bg_window_title = "Graph editor BG";
 
 typedef enum editor_mode_ {
 	em_normal,
@@ -56,6 +57,7 @@ void show_example_window(struct nk_context *);
 void run_gui(lfr_graph_t *, lfr_toil_t *);
 void show_graph(app_t * app, lfr_graph_t *, lfr_toil_t *);
 void show_individual_node_window(lfr_node_id_t, lfr_graph_t *, lfr_toil_t *, app_t *);
+void show_node_flow_bg_window(const lfr_graph_t *, const app_t *);
 void show_toil_queue(struct nk_context*, lfr_graph_t *, lfr_toil_t *);
 
 int main( int argc, char** argv) {
@@ -201,61 +203,10 @@ void show_graph(app_t *app, lfr_graph_t *graph, lfr_toil_t* toil) {
 	}
 
 	// Show node flow
-	if (nk_begin(ctx, "Node editor BG", nk_rect(0,0, 1024, 768), NK_WINDOW_BACKGROUND)) {
-		struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
-		nk_fill_rect(canvas, nk_window_get_bounds(ctx), 0.f, nk_rgb(20,20,20));
-		for (int i = 0; i < graph->num_flow_links; i++) {
-			const lfr_flow_link_t *link = &graph->flow_links[i];
-			// Source end
-			lfr_vec2_t p1 = lfr_get_node_position(link->source_node, &graph->nodes);
-			p1.x += 250;
-			p1.y += 20;
-
-			// Target end
-			lfr_vec2_t p2 = lfr_get_node_position(link->target_node, &graph->nodes);
-			p2.y += 20;
-
-			// Draw line
-			const float ex = 75;
-			nk_stroke_curve(canvas,
-				p1.x, p1.y, p1.x + ex, p1.y, p2.x - ex, p2.y, p2.x, p2.y,
-				2.f, nk_rgb(100,100,100));
-		}
-
-		// Select previous node in flow
-		if (app->mode == em_select_flow_prev && app->active_node_id.id) {
-			// Connected end
-			lfr_vec2_t target_p = lfr_get_node_position(app->active_node_id, &graph->nodes);
-			target_p.y += 20;
-
-			// Mouse end
-			double mouse_x, mouse_y;
-			glfwGetCursorPos(app->window, &mouse_x, &mouse_y);
-
-			// Signify mode
-			nk_stroke_line(canvas, mouse_x, mouse_y, target_p.x, target_p.y, 5.f, nk_rgb(200,150,100));
-		}
-
-		// Select next node in flow
-		if (app->mode == em_select_flow_next && app->active_node_id.id) {
-			// Connected end
-			lfr_vec2_t source_p = lfr_get_node_position(app->active_node_id, &graph->nodes);
-			source_p.x += 250;
-			source_p.y += 20;
-
-			// Mouse end
-			double mouse_x, mouse_y;
-			glfwGetCursorPos(app->window, &mouse_x, &mouse_y);
-
-			// Signify mode
-			nk_stroke_line(canvas, source_p.x, source_p.y, mouse_x, mouse_y, 5.f, nk_rgb(150,200,100));
-		}
-
-	}
-	nk_end(ctx);
+	show_node_flow_bg_window(graph, app);
 
 	// Return editor to 'normal' mode by clicking on background
-	if (nk_window_is_active(ctx, "Node editor BG") && app->mode != em_normal) {
+	if (nk_window_is_active(ctx, bg_window_title) && app->mode != em_normal) {
 		app->mode = em_normal;
 	}
 }
@@ -359,6 +310,68 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 		struct nk_vec2 p = nk_window_get_position(ctx);
 		lfr_vec2_t node_pos = {p.x, p.y};
 		lfr_set_node_position(node_id, node_pos, &graph->nodes);
+	}
+	nk_end(ctx);
+}
+
+
+/**
+Show background window with flow lines.
+**/
+void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
+	assert(graph && app);
+	struct nk_context *ctx = app->ctx;
+
+	if (nk_begin(ctx, bg_window_title, nk_rect(0,0, 1024, 768), NK_WINDOW_BACKGROUND)) {
+		struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+		nk_fill_rect(canvas, nk_window_get_bounds(ctx), 0.f, nk_rgb(20,20,20));
+		for (int i = 0; i < graph->num_flow_links; i++) {
+			const lfr_flow_link_t *link = &graph->flow_links[i];
+			// Source end
+			lfr_vec2_t p1 = lfr_get_node_position(link->source_node, &graph->nodes);
+			p1.x += 250;
+			p1.y += 20;
+
+			// Target end
+			lfr_vec2_t p2 = lfr_get_node_position(link->target_node, &graph->nodes);
+			p2.y += 20;
+
+			// Draw line
+			const float ex = 75;
+			nk_stroke_curve(canvas,
+				p1.x, p1.y, p1.x + ex, p1.y, p2.x - ex, p2.y, p2.x, p2.y,
+				2.f, nk_rgb(100,100,100));
+		}
+
+		// Select previous node in flow
+		if (app->mode == em_select_flow_prev && app->active_node_id.id) {
+			// Connected end
+			lfr_vec2_t target_p = lfr_get_node_position(app->active_node_id, &graph->nodes);
+			target_p.y += 20;
+
+			// Mouse end
+			double mouse_x, mouse_y;
+			glfwGetCursorPos(app->window, &mouse_x, &mouse_y);
+
+			// Signify mode
+			nk_stroke_line(canvas, mouse_x, mouse_y, target_p.x, target_p.y, 5.f, nk_rgb(200,150,100));
+		}
+
+		// Select next node in flow
+		if (app->mode == em_select_flow_next && app->active_node_id.id) {
+			// Connected end
+			lfr_vec2_t source_p = lfr_get_node_position(app->active_node_id, &graph->nodes);
+			source_p.x += 250;
+			source_p.y += 20;
+
+			// Mouse end
+			double mouse_x, mouse_y;
+			glfwGetCursorPos(app->window, &mouse_x, &mouse_y);
+
+			// Signify mode
+			nk_stroke_line(canvas, source_p.x, source_p.y, mouse_x, mouse_y, 5.f, nk_rgb(150,200,100));
+		}
+
 	}
 	nk_end(ctx);
 }
