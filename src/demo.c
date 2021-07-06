@@ -4,6 +4,7 @@ LFR Scripting demo.
 
 // LIBC
 #include <assert.h>
+#include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -64,6 +65,14 @@ int main( int argc, char** argv) {
 	lfr_graph_t graph = {0};
 	lfr_init_graph(&graph);
 
+	// Optionally read graph script from file
+	if (argc > 1) {
+		printf("Reading from file: %s\n", argv[1]);
+		FILE * fp = fopen(argv[1], "r");
+		lfr_parse_graph_from_file(fp, &graph);
+		fclose(fp);
+	}
+
 	// Construct graph
 	lfr_node_id_t n1 = lfr_add_node(lfr_print_own_id, &graph);
 	lfr_node_id_t n2 = lfr_add_node(lfr_print_own_id, &graph);
@@ -77,6 +86,7 @@ int main( int argc, char** argv) {
 
 	run_gui(&graph, &toil);
 
+	// Dump to stdout (for now)
 	lfr_dump_graph_to_file(&graph, stdout);
 
 	lfr_term_graph(&graph);

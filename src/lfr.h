@@ -76,6 +76,7 @@ unsigned lfr_count_node_target_links(lfr_node_id_t, const lfr_graph_t*);
 void lfr_unlink_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
 
 // Graph serialization
+void lfr_parse_graph_from_file(FILE * restrict stream, lfr_graph_t *graph);
 int lfr_dump_graph_to_file(const lfr_graph_t *, FILE * restrict stream);
 int lfr_dump_links_to_file(const lfr_graph_t *, FILE * restrict stream);
 
@@ -284,6 +285,41 @@ void lfr_unlink_nodes(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t ta
 	}
 }
 
+
+/**
+Load graph content from (tab separated) file.
+**/
+void lfr_parse_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
+	char line_buf[1024];
+	while (fgets(line_buf, 1024, stream)) {
+		// Get line type
+		char type_buf[8];
+		sscanf(line_buf, "%s", type_buf);
+
+		// Parse various line types
+		if (strlen(type_buf) == 0) {
+			/* Skip if empty */
+		} else if (strcmp(type_buf, "node") == 0) {
+			LFR_TRACE("Parsing '%s' as a node.", line_buf);
+
+			unsigned id;
+			char inst_buf[32];
+			float px, py;
+			sscanf(line_buf, "node #%u %s (%f,%f)", &id, inst_buf, &px, &py);
+
+			LFR_TRACE("Node: #%u %s (%f, %f)", id, inst_buf, px, py);
+		} else if (strcmp(type_buf, "link") == 0) {
+			LFR_TRACE("Parsing '%s' as a link", line_buf);
+
+			unsigned source, target;
+			sscanf(line_buf, "link #%u -> #%u", &source, &target);
+
+			LFR_TRACE("Link: #%u -> #%u", source, target);
+		} else {
+			fprintf(stderr, "Unknown type '%s'\n", type_buf);
+		}
+	}
+}
 
 /**
 Dump graph to file in a parsable (tab-separated) format.
