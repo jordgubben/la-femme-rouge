@@ -71,19 +71,17 @@ int main( int argc, char** argv) {
 		FILE * fp = fopen(argv[1], "r");
 		lfr_parse_graph_from_file(fp, &graph);
 		fclose(fp);
+	} else {
+		// Construct graph
+		lfr_node_id_t n1 = lfr_add_node(lfr_print_own_id, &graph);
+		lfr_node_id_t n2 = lfr_add_node(lfr_print_own_id, &graph);
+		lfr_node_id_t n3 = lfr_add_node(lfr_print_own_id, &graph);
+		lfr_link_nodes(n1, 0, n2, &graph);
+		lfr_link_nodes(n1, 0, n3, &graph);
 	}
 
-	// Construct graph
-	lfr_node_id_t n1 = lfr_add_node(lfr_print_own_id, &graph);
-	lfr_node_id_t n2 = lfr_add_node(lfr_print_own_id, &graph);
-	lfr_node_id_t n3 = lfr_add_node(lfr_print_own_id, &graph);
-	lfr_link_nodes(n1, 0, n2, &graph);
-	lfr_link_nodes(n1, 0, n3, &graph);
-
-	// Set a starting point in the graph
+	// Run graph in gui
 	lfr_toil_t toil = {0};
-	lfr_schedule(n1, &graph, &toil);
-
 	run_gui(&graph, &toil);
 
 	// Dump to stdout (for now)
