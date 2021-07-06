@@ -49,6 +49,9 @@ bool init_gl_app(int, int, app_t*);
 void term_gl_app(app_t*);
 bool check_gl(const char* hint, int line);
 
+// Sandbox
+void show_example_window(struct nk_context *);
+
 // Editor
 void run_gui(lfr_graph_t *, lfr_toil_t *);
 void show_graph(app_t * app, lfr_graph_t *, lfr_toil_t *);
@@ -117,38 +120,7 @@ void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
 		// Prep UI
 		nk_glfw3_new_frame(&glfw);
 
-		// Example window
-		nk_flags window_flags = 0
-			| NK_WINDOW_MOVABLE
-			| NK_WINDOW_SCALABLE
-			| NK_WINDOW_TITLE
-			;
-		if (nk_begin(ctx, "Example window", nk_rect(100,500, 300, 200), window_flags)) {
-			nk_layout_row_dynamic(ctx, 0, 2);
-			nk_label(ctx, "Example label", NK_TEXT_LEFT);
-			if (nk_button_label(ctx, "Example button")) {
-				printf("Button pressed!\n");
-			}
-
-			// Group inside window
-			nk_layout_row_dynamic(ctx, 75, 1);
-			nk_flags group_flags = 0
-				| NK_WINDOW_TITLE
-				;
-			if (nk_group_begin(ctx, "Example group", group_flags)) {
-				nk_layout_row_dynamic(ctx, 25, 3);
-				nk_label(ctx, "Label L", NK_TEXT_LEFT);
-				nk_label(ctx, "Label C", NK_TEXT_CENTERED);
-				nk_label(ctx, "Label R", NK_TEXT_RIGHT);
-				nk_group_end(ctx);
-			}
-
-			// Label after group
-			nk_layout_row_dynamic(ctx, 0, 1);
-			nk_label(ctx, "~ After group ~", NK_TEXT_CENTERED);
-		}
-		nk_end(ctx);
-
+		show_example_window(ctx);
 		show_graph(&app, graph, toil);
 		show_toil_queue(ctx, graph, toil);
 
@@ -172,6 +144,44 @@ void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
 	quit:
 	nk_glfw3_shutdown(&glfw);
 	term_gl_app(&app);
+}
+
+
+/**
+Show Nuklear example window.
+**/
+void show_example_window(struct nk_context *ctx) {
+	// Example window
+	nk_flags window_flags = 0
+		| NK_WINDOW_MOVABLE
+		| NK_WINDOW_SCALABLE
+		| NK_WINDOW_TITLE
+		;
+	if (nk_begin(ctx, "Example window", nk_rect(100,500, 300, 200), window_flags)) {
+		nk_layout_row_dynamic(ctx, 0, 2);
+		nk_label(ctx, "Example label", NK_TEXT_LEFT);
+		if (nk_button_label(ctx, "Example button")) {
+			printf("Button pressed!\n");
+		}
+
+		// Group inside window
+		nk_layout_row_dynamic(ctx, 75, 1);
+		nk_flags group_flags = 0
+			| NK_WINDOW_TITLE
+			;
+		if (nk_group_begin(ctx, "Example group", group_flags)) {
+			nk_layout_row_dynamic(ctx, 25, 3);
+			nk_label(ctx, "Label L", NK_TEXT_LEFT);
+			nk_label(ctx, "Label C", NK_TEXT_CENTERED);
+			nk_label(ctx, "Label R", NK_TEXT_RIGHT);
+			nk_group_end(ctx);
+		}
+
+		// Label after group
+		nk_layout_row_dynamic(ctx, 0, 1);
+		nk_label(ctx, "~ After group ~", NK_TEXT_CENTERED);
+	}
+	nk_end(ctx);
 }
 
 
