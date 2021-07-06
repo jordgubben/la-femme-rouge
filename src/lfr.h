@@ -21,7 +21,6 @@ lfr_instruction_e lfr_find_instruction_from_name(const char* name);
 
 typedef struct lfr_node_id_ { unsigned id; } lfr_node_id_t;
 
-enum {lfr_node_max_flow_slots = 4};
 typedef struct lfr_node_ {
 	lfr_instruction_e instruction;
 } lfr_node_t;
@@ -51,7 +50,6 @@ int lfr_save_node_table_to_file(const lfr_node_table_t*, FILE * restrict stream)
 /// LFR Graph ////
 typedef struct lfr_flow_link_ {
 	lfr_node_id_t source_node, target_node;
-	unsigned slot;
 } lfr_flow_link_t;
 
 enum {lfr_graph_max_flow_links = 32};
@@ -70,11 +68,11 @@ void lfr_term_graph(lfr_graph_t *);
 lfr_node_id_t lfr_add_node(lfr_instruction_e, lfr_graph_t *);
 
 // Link CRUD
-void lfr_link_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
-bool lfr_has_link(lfr_node_id_t, unsigned, lfr_node_id_t, const lfr_graph_t*);
+void lfr_link_nodes(lfr_node_id_t, lfr_node_id_t, lfr_graph_t*);
+bool lfr_has_link(lfr_node_id_t, lfr_node_id_t, const lfr_graph_t*);
 unsigned lfr_count_node_source_links(lfr_node_id_t, const lfr_graph_t*);
 unsigned lfr_count_node_target_links(lfr_node_id_t, const lfr_graph_t*);
-void lfr_unlink_nodes(lfr_node_id_t, unsigned, lfr_node_id_t, lfr_graph_t*);
+void lfr_unlink_nodes(lfr_node_id_t, lfr_node_id_t, lfr_graph_t*);
 
 // Graph serialization
 void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph);
@@ -165,7 +163,7 @@ int lfr_step(const lfr_graph_t *graph, lfr_toil_t *toil) {
 	// Enqueue nodes - Continue flow throgh graph
 	for (int i =0; i < graph->num_flow_links; i++) {
 		const lfr_flow_link_t * link = &graph->flow_links[i];
-		if (T_SAME_ID(link->source_node, node_id) && link->slot == 0) {
+		if (T_SAME_ID(link->source_node, node_id)) {
 			lfr_schedule(link->target_node, graph, toil);
 		}
 	}
@@ -213,25 +211,24 @@ lfr_node_id_t lfr_add_node(lfr_instruction_e inst, lfr_graph_t *graph) {
 /**
 Link execution of one node to another.
 **/
-void lfr_link_nodes(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t target_node, lfr_graph_t *graph) {
+void lfr_link_nodes(lfr_node_id_t source_node, lfr_node_id_t target_node, lfr_graph_t *graph) {
 	assert(graph->num_flow_links < lfr_graph_max_flow_links);
 
 	// Prevent duplicates
-	if (lfr_has_link(source_node, slot, target_node, graph)) { return; };
+	if (lfr_has_link(source_node, target_node, graph)) { return; };
 
 	// Add (non-duplicate link)
-	graph->flow_links[graph->num_flow_links++] = (lfr_flow_link_t) {source_node, target_node, slot};
+	graph->flow_links[graph->num_flow_links++] = (lfr_flow_link_t) {source_node, target_node};
 }
 
 
 /**
 Is there a linke from one node to the other?
 **/
-bool lfr_has_link(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t target_node, const lfr_graph_t *graph) {
+bool lfr_has_link(lfr_node_id_t source_node, lfr_node_id_t target_node, const lfr_graph_t *graph) {
 	for (int i = 0; i < graph->num_flow_links; i++) {
 		const lfr_flow_link_t *link = &graph->flow_links[i];
 		if ( !T_SAME_ID(source_node, link->source_node)) { continue; }
-		if ( slot != link->slot) { continue; }
 		if ( !T_SAME_ID(target_node, link->target_node)) { continue; }
 
 		return true;
@@ -273,11 +270,10 @@ unsigned lfr_count_node_target_links(lfr_node_id_t target_node, const lfr_graph_
 /**
 Break execution link from one node to another.
 **/
-void lfr_unlink_nodes(lfr_node_id_t source_node, unsigned slot, lfr_node_id_t target_node, lfr_graph_t *graph) {
+void lfr_unlink_nodes(lfr_node_id_t source_node, lfr_node_id_t target_node, lfr_graph_t *graph) {
 	for (int i = 0; i < graph->num_flow_links; i++) {
 		lfr_flow_link_t *link = &graph->flow_links[i];
 		if ( !T_SAME_ID(source_node, link->source_node)) { continue; }
-		if ( slot != link->slot) { continue; }
 		if ( !T_SAME_ID(target_node, link->target_node)) { continue; }
 
 		// Remove (breaking order)
@@ -317,7 +313,7 @@ void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
 			// Parse and create link
 			lfr_node_id_t source, target;
 			sscanf(line_buf, "link #%u -> #%u", &source.id, &target.id);
-			lfr_link_nodes(source, 0, target, graph);
+			lfr_link_nodes(source, target, graph);
 
 		} else {
 			fprintf(stderr, "Unknown type '%s'\n", type_buf);
