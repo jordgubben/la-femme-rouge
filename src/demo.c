@@ -84,8 +84,13 @@ int main( int argc, char** argv) {
 	lfr_toil_t toil = {0};
 	run_gui(&graph, &toil);
 
-	// Dump to stdout (for now)
-	lfr_dump_graph_to_file(&graph, stdout);
+	// Optionally dump graph script to file
+	if (argc > 1) {
+		printf("Saving graph to file: %s\n", argv[1]);
+		FILE * fp = fopen(argv[1], "w");
+		lfr_dump_graph_to_file(&graph, fp);
+		fclose(fp);
+	}
 
 	lfr_term_graph(&graph);
 	return 0; 
