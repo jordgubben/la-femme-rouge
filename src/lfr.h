@@ -442,6 +442,12 @@ int lfr_save_node_table_to_file(const lfr_node_table_t *table, FILE * restrict s
 
 //// LFR Instructions ////
 
+/** Full definition of a single instruction. **/
+typedef struct lfr_instruction_def_ {
+	const char *name;
+} lfr_instruction_def_t;
+
+
 const char* lfr_get_instruction_name(lfr_instruction_e inst) {
 	switch(inst) {
 	case lfr_print_own_id: { return "lfr_print_own_id";}
