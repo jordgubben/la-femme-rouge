@@ -108,11 +108,15 @@ int lfr_save_links_to_file(const lfr_graph_t *, FILE * restrict stream);
 typedef struct lfr_instruction_def_ {
 	const char *name;
 	void (*func)(lfr_node_id_t, lfr_variant_t input[], lfr_variant_t output[], const lfr_graph_t *);
-	lfr_variant_t input_signature[lfr_signature_size], output_signature[lfr_signature_size];
+	struct {
+		const char* name;
+		lfr_variant_t data;
+	} input_signature[lfr_signature_size], output_signature[lfr_signature_size];
 } lfr_instruction_def_t;
 
 const char* lfr_get_instruction_name(lfr_instruction_e);
 lfr_instruction_e lfr_find_instruction_from_name(const char* name);
+const struct lfr_instruction_def_* lfr_get_instruction(lfr_instruction_e);
 
 
 //// LFR Node state ////
@@ -195,7 +199,6 @@ int lfr_step(const lfr_graph_t *, lfr_graph_state_t *);
 //// Internals (defined further down) ////
 
 
-const struct lfr_instruction_def_* lfr_get_instruction(lfr_instruction_e);
 
 //// LFR script execution ////
 
@@ -485,7 +488,7 @@ lfr_variant_t lfr_get_default_output_value(lfr_node_id_t id, unsigned slot, cons
 	// Instructions default value
 	lfr_instruction_e inst = table->node[index].instruction;
 	const lfr_instruction_def_t *inst_def = lfr_get_instruction(inst);
-	return inst_def->output_signature[slot];
+	return inst_def->output_signature[slot].data;
 }
 
 
@@ -561,7 +564,11 @@ Look up table of all core instructions.
 **/
 static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructions] = {
 	{"print_own_id", lfr_print_own_id_proc, {}, {}},
-	{"randomize_number", lfr_randomize_number_proc, {}, {{lfr_float_type, .float_value = 0 }}},
+	{"randomize_number", lfr_randomize_number_proc,
+		{},
+		{{"Random float",  {lfr_float_type, .float_value = 0 }}
+		}
+	},
 };
 
 

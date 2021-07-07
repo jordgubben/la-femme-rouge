@@ -326,13 +326,13 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 
 				nk_layout_row_dynamic(ctx, 0, 2);
 				for (int i = 0; i < lfr_signature_size; i++) {
+					const char* name = lfr_get_instruction(inst)->output_signature[i].name;
 					lfr_variant_t data = lfr_get_output_value(node_id, i, graph, state);
-					if (data.type != lfr_nil_type) {
+					if (data.type != lfr_nil_type  && name) {
 						char label[16];
 
 						// Name
-						snprintf(label, 16, "Slot #%u = ", i);
-						nk_label(ctx, label, NK_TEXT_RIGHT);
+						nk_label(ctx, name, NK_TEXT_RIGHT);
 
 						// Value
 						snprintf(label, 16, "(%.3f)", data.float_value);
