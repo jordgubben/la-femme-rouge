@@ -303,6 +303,27 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 			case no_em_modes: assert(0);  break; // Not a mode :P
 		}
 
+		// Data (input and output)
+		{
+			nk_layout_row_dynamic(ctx, 50, 2);
+			const nk_flags group_flags = 0
+				;
+
+			// Input
+			if (nk_group_begin(ctx, "Input data", group_flags)) {
+				nk_layout_row_dynamic(ctx, 0, 1);
+				nk_label(ctx, "Input", NK_TEXT_LEFT);
+				nk_group_end(ctx);
+			}
+
+			// Output
+			if (nk_group_begin(ctx, "Output data", group_flags)) {
+				nk_layout_row_dynamic(ctx, 0, 1);
+				nk_label(ctx, "Output", NK_TEXT_RIGHT);
+				nk_group_end(ctx);
+			}
+		}
+
 		// Scheduling
 		nk_layout_row_dynamic(ctx, 0, 2);
 		nk_label(ctx, "Example label", NK_TEXT_LEFT);
