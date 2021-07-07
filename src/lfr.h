@@ -122,7 +122,7 @@ typedef struct lfr_node_state_ {
 } lfr_node_state_t;
 
 typedef struct lfr_node_state_table_ {
-	// Meta fields (auxiliry table)
+	// Meta fields (auxiliary table)
 	unsigned sparse_id[lfr_node_table_id_range];
 	lfr_node_id_t dense_id[lfr_node_table_max_rows];
 	unsigned num_rows;
@@ -133,6 +133,7 @@ typedef struct lfr_node_state_table_ {
 } lfr_node_state_table_t;
 
 // Node state CRUD
+unsigned lfr_insert_node_state_at(lfr_node_id_t, const lfr_node_table_t*, lfr_node_state_table_t*);
 bool lfr_node_state_table_contains(lfr_node_id_t, const lfr_node_state_table_t*);
 
 
@@ -226,8 +227,14 @@ int lfr_step(const lfr_graph_t *graph, lfr_graph_state_t *state) {
 
 	// Process instruction
 	if (head->instruction < lfr_no_core_instructions) {
-		lfr_variant_t input[8], output[8];
+		lfr_variant_t input[8] = {0}, output[8] = {0};
 		lfr_get_instruction(head->instruction)->func(node_id, input, output, graph);
+
+		// Update node state with new result data
+		unsigned state_index = lfr_insert_node_state_at(node_id, &graph->nodes, &state->nodes);
+		for (int i = 0; i < lfr_signature_size; i++) {
+			state->nodes.node_state[state_index].output_data[i] = output[i];
+		}
 	}
 
 	// Enqueue nodes - Continue flow throgh graph
@@ -593,6 +600,28 @@ lfr_instruction_e lfr_find_instruction_from_name(const char* name) {
 
 
 //// LFR Node state ////
+
+
+/**
+Insert a row for the given id into the auxiliary node state table.
+**/
+unsigned lfr_insert_node_state_at(lfr_node_id_t id, const lfr_node_table_t * nt, lfr_node_state_table_t *st) {
+	assert(nt && st);
+	assert(T_HAS_ID(*nt, id));
+
+	// Reuse existing row or create new
+	unsigned index;
+	if (T_HAS_ID(*st, id)) {
+		index = T_INDEX(*st, id);
+	} else {
+		assert(st->num_rows < lfr_node_table_max_rows);
+		index = st->num_rows++;
+		st->dense_id[index] = id;
+		st->sparse_id[id.id] = index;
+	}
+
+	return index;
+}
 
 /**
 Is the given id correspond to a row in the given node state table?
