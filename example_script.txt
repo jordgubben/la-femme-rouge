@@ -1,7 +1,7 @@
-node	#1	lfr_print_own_id	(32.000000, 55.000000)	
-node	#2	lfr_print_own_id	(318.000000, 271.000000)	
-node	#3	lfr_print_own_id	(596.000000, 49.000000)	
-node	#4	lfr_print_own_id	(755.000000, 277.000000)	
+node	#1	print_own_id	(32.000000, 55.000000)
+node	#2	randomize_number	(318.000000, 271.000000)
+node	#3	print_own_id	(596.000000, 49.000000)
+node	#4	randomize_number	(755.000000, 277.000000)
 link	#1 -> #2	
 link	#1 -> #3	
 link	#2 -> #3	
