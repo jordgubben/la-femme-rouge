@@ -115,18 +115,45 @@ const char* lfr_get_instruction_name(lfr_instruction_e);
 lfr_instruction_e lfr_find_instruction_from_name(const char* name);
 
 
-//// LFR script execution ////
+//// LFR Node state ////
+
+typedef struct lfr_node_state_ {
+	lfr_variant_t output_data[lfr_signature_size];
+} lfr_node_state_t;
+
+typedef struct lfr_node_state_table_ {
+	// Meta fields (auxiliry table)
+	unsigned sparse_id[lfr_node_table_id_range];
+	lfr_node_id_t dense_id[lfr_node_table_max_rows];
+	unsigned num_rows;
+
+	// Data column(s)
+	lfr_node_state_t node_state[lfr_node_table_max_rows];
+
+} lfr_node_state_table_t;
+
+// Node state CRUD
+bool lfr_node_state_table_contains(lfr_node_id_t, const lfr_node_state_table_t*);
+
+
+//// LFR Graph state ////
 
 enum { lfr_graph_state__max_queue = 8};
 typedef struct lfr_graph_state_ {
 	lfr_node_id_t schedueled_nodes[lfr_graph_state__max_queue];
 	unsigned num_schedueled_nodes;
+
+	lfr_node_state_table_t nodes;
 } lfr_graph_state_t;
+
+
+lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned slot, const lfr_graph_t*, const lfr_graph_state_t*);
+
+
+//// LFR script execution ////
 
 void lfr_schedule(lfr_node_id_t, const lfr_graph_t *, lfr_graph_state_t *);
 int lfr_step(const lfr_graph_t *, lfr_graph_state_t *);
-
-lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned slot, const lfr_graph_t*, const lfr_graph_state_t*);
 
 #endif
 
@@ -565,6 +592,18 @@ lfr_instruction_e lfr_find_instruction_from_name(const char* name) {
 }
 
 
+//// LFR Node state ////
+
+/**
+Is the given id correspond to a row in the given node state table?
+**/
+bool lfr_node_state_table_contains(lfr_node_id_t id, const lfr_node_state_table_t *table) {
+	return T_HAS_ID(*table, id);
+}
+
+
+//// LFR Graph state ////
+
 /**
 Get current value for the given node and slot.
 **/
@@ -573,6 +612,14 @@ lfr_variant_t lfr_get_output_value(lfr_node_id_t id, unsigned slot,
 	assert(graph && state);
 	assert(slot < lfr_signature_size);
 
+	// Return state data if available
+	if (lfr_node_state_table_contains(id, &state->nodes)) {
+		unsigned index = T_INDEX(state->nodes, id);
+		const lfr_node_state_t *node_state = &state->nodes.node_state[index];
+		return node_state->output_data[slot];
+	}
+
+	// Otherwise return default
 	return lfr_get_default_output_value(id, slot, &graph->nodes);
 }
 
