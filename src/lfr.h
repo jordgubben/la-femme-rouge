@@ -38,8 +38,10 @@ typedef enum lfr_instruction_ {
 
 typedef struct lfr_node_id_ { unsigned id; } lfr_node_id_t;
 
+enum {lfr_signature_size = 8};
 typedef struct lfr_node_ {
 	lfr_instruction_e instruction;
+	lfr_variant_t output_data[lfr_signature_size];
 } lfr_node_t;
 
 enum {lfr_node_table_max_rows = 16, lfr_node_table_id_range = 1024};
@@ -60,6 +62,7 @@ unsigned lfr_get_node_index(lfr_node_id_t, const lfr_node_table_t *);
 lfr_vec2_t lfr_get_node_position(lfr_node_id_t, const lfr_node_table_t *);
 lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned, const lfr_node_table_t *);
 void lfr_set_node_position(lfr_node_id_t, lfr_vec2_t, lfr_node_table_t *);
+void lfr_set_output_value(lfr_node_id_t, unsigned slot, lfr_variant_t, lfr_node_table_t *);
 
 
 // Node serialization
@@ -102,7 +105,6 @@ int lfr_save_links_to_file(const lfr_graph_t *, FILE * restrict stream);
 
 //// LFR Instruction definitions ////
 
-enum {lfr_signature_size = 8};
 typedef struct lfr_instruction_def_ {
 	const char *name;
 	void (*func)(lfr_node_id_t, lfr_variant_t input[], lfr_variant_t output[], const lfr_graph_t *);
@@ -404,6 +406,9 @@ lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e inst, lfr_node_table_
 
 	// Set row data
 	table->node[index].instruction = inst;
+	for (int i = 0; i < lfr_signature_size; i++) {
+		table->node[index].output_data[i] = (lfr_variant_t) { lfr_nil_type, 0};
+	}
 	table->position[index] = (lfr_vec2_t) { 0, 0};
 
 	return table->dense_id[index];
@@ -432,8 +437,16 @@ Get the default value for the given node and slot.
 lfr_variant_t lfr_get_output_value(lfr_node_id_t id, unsigned slot, const lfr_node_table_t *table) {
 	assert(slot < lfr_signature_size);
 
+	unsigned index = T_INDEX(*table, id);
+
+	// Graph node default
+	lfr_variant_t graph_data = table->node[index].output_data[slot];
+	if (graph_data.type != lfr_nil_type) {
+		return graph_data;
+	}
+
 	// Instructions default value
-	lfr_instruction_e inst = table->node[T_INDEX(*table, id)].instruction;
+	lfr_instruction_e inst = table->node[index].instruction;
 	const lfr_instruction_def_t *inst_def = lfr_get_instruction(inst);
 	return inst_def->output_signature[slot];
 }
@@ -444,6 +457,17 @@ Set position of a node in the table.
 **/
 void lfr_set_node_position(lfr_node_id_t id, lfr_vec2_t pos, lfr_node_table_t *table) {
 	table->position[T_INDEX(*table, id)] = pos;
+}
+
+
+/**
+Set default date for the given node and slot.
+**/
+void lfr_set_output_value(lfr_node_id_t id, unsigned slot, lfr_variant_t value, lfr_node_table_t *table) {
+	assert(slot < lfr_signature_size);
+
+	unsigned index = T_INDEX(*table, id);
+	table->node[index].output_data[slot] = value;
 }
 
 
