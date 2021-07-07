@@ -244,7 +244,7 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 
 	// Initial window rect
 	lfr_vec2_t pos = lfr_get_node_position(node_id, &graph->nodes);
-	struct nk_rect rect =  nk_rect(pos.x, pos.y, 250, 200);
+	struct nk_rect rect =  nk_rect(pos.x, pos.y, 300, 200);
 
 	// Show the window
 	bool highlight = (toil->num_schedueled_nodes && node_id.id ==  toil->schedueled_nodes[0].id);
@@ -409,7 +409,7 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 			const lfr_flow_link_t *link = &graph->flow_links[i];
 			// Source end
 			lfr_vec2_t p1 = lfr_get_node_position(link->source_node, &graph->nodes);
-			p1.x += 250;
+			p1.x += 300;
 			p1.y += 20;
 
 			// Target end
@@ -441,7 +441,7 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 		if (app->mode == em_select_flow_next && app->active_node_id.id) {
 			// Connected end
 			lfr_vec2_t source_p = lfr_get_node_position(app->active_node_id, &graph->nodes);
-			source_p.x += 250;
+			source_p.x += 300;
 			source_p.y += 20;
 
 			// Mouse end

@@ -233,7 +233,7 @@ Node is positioned to the right of the last node in the table.
 lfr_node_id_t lfr_add_node(lfr_instruction_e inst, lfr_graph_t *graph) {
 	lfr_node_id_t id = lfr_insert_node_into_table(inst, &graph->nodes);
 	graph->nodes.position[graph->nodes.num_rows - 1] = graph->next_node_pos;
-	graph->next_node_pos.x += 260;
+	graph->next_node_pos.x += 310;
 	return id;
 }
 
