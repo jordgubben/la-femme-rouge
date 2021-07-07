@@ -5,7 +5,25 @@ La Femme Rough - An minimal graph based scripting system for games.
 #define LFR_H
 
 //// LFR Base types ////
+
 typedef struct lfr_vec2_ { float x,y; } lfr_vec2_t;
+
+typedef enum lfr_variant_type_ {
+	lfr_nil_type,
+	lfr_float_type,
+	lfr_vec2_type,
+	lfr_no_core_types
+} lfr_variant_type_e;
+
+typedef struct lfr_variant_ {
+	lfr_variant_type_e type;
+	union {
+		int int_value;
+		float floar_value;
+		lfr_vec2_t vec2_value;
+	};
+} lfr_variant_t;
+
 
 //// LFR Instructions ////
 
