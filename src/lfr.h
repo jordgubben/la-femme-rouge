@@ -19,7 +19,7 @@ typedef struct lfr_variant_ {
 	lfr_variant_type_e type;
 	union {
 		int int_value;
-		float floar_value;
+		float float_value;
 		lfr_vec2_t vec2_value;
 	};
 } lfr_variant_t;
@@ -29,6 +29,7 @@ typedef struct lfr_variant_ {
 
 typedef enum lfr_instruction_ {
 	lfr_print_own_id,
+	lfr_randomize_number,
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
@@ -146,10 +147,11 @@ int lfr_step(const lfr_graph_t *, lfr_toil_t *);
 
 //// Internals (defined further down) ////
 
-/** Full definition of a single instruction. **/
+enum {lfr_signature_size = 8};
 typedef struct lfr_instruction_def_ {
 	const char *name;
 	void (*func)(lfr_node_id_t, lfr_variant_t input[], lfr_variant_t output[], const lfr_graph_t *);
+	lfr_variant_t input_signature[lfr_signature_size], output_signature[lfr_signature_size];
 } lfr_instruction_def_t;
 
 const struct lfr_instruction_def_* lfr_get_instruction(lfr_instruction_e);
@@ -461,11 +463,22 @@ void lfr_print_own_id_proc(lfr_node_id_t node_id,
 }
 
 
+void lfr_randomize_number_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		const lfr_graph_t* graph) {
+
+	// Assign random float value
+	output[0].type = lfr_float_type;
+	output[0].float_value = 0.17; // A random number as good as any
+	return;
+}
+
 /**
 Look up table of all core instructions.
 **/
 static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructions] = {
-	{"print_own_id", lfr_print_own_id_proc},
+	{"print_own_id", lfr_print_own_id_proc, {}, {}},
+	{"randomize_number", lfr_randomize_number_proc, {}, {{lfr_float_type, .float_value = 0 }}},
 };
 
 

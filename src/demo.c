@@ -74,7 +74,7 @@ int main( int argc, char** argv) {
 	} else {
 		// Construct graph
 		lfr_node_id_t n1 = lfr_add_node(lfr_print_own_id, &graph);
-		lfr_node_id_t n2 = lfr_add_node(lfr_print_own_id, &graph);
+		lfr_node_id_t n2 = lfr_add_node(lfr_randomize_number, &graph);
 		lfr_node_id_t n3 = lfr_add_node(lfr_print_own_id, &graph);
 		lfr_link_nodes(n1, n2, &graph);
 		lfr_link_nodes(n1, n3, &graph);
