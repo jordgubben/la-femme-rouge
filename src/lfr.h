@@ -33,8 +33,6 @@ typedef enum lfr_instruction_ {
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
-const char* lfr_get_instruction_name(lfr_instruction_e);
-lfr_instruction_e lfr_find_instruction_from_name(const char* name);
 
 //// LFR Node ////
 
@@ -66,7 +64,8 @@ void lfr_set_node_position(lfr_node_id_t, lfr_vec2_t, lfr_node_table_t *);
 int lfr_save_node_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
 
 
-/// LFR Graph ////
+//// LFR Graph ////
+
 typedef struct lfr_flow_link_ {
 	lfr_node_id_t source_node, target_node;
 } lfr_flow_link_t;
@@ -97,6 +96,19 @@ void lfr_unlink_nodes(lfr_node_id_t, lfr_node_id_t, lfr_graph_t*);
 void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph);
 int lfr_save_graph_to_file(const lfr_graph_t *, FILE * restrict stream);
 int lfr_save_links_to_file(const lfr_graph_t *, FILE * restrict stream);
+
+
+//// LFR Instruction definitions ////
+
+enum {lfr_signature_size = 8};
+typedef struct lfr_instruction_def_ {
+	const char *name;
+	void (*func)(lfr_node_id_t, lfr_variant_t input[], lfr_variant_t output[], const lfr_graph_t *);
+	lfr_variant_t input_signature[lfr_signature_size], output_signature[lfr_signature_size];
+} lfr_instruction_def_t;
+
+const char* lfr_get_instruction_name(lfr_instruction_e);
+lfr_instruction_e lfr_find_instruction_from_name(const char* name);
 
 
 //// LFR script execution ////
@@ -147,12 +159,6 @@ int lfr_step(const lfr_graph_t *, lfr_toil_t *);
 
 //// Internals (defined further down) ////
 
-enum {lfr_signature_size = 8};
-typedef struct lfr_instruction_def_ {
-	const char *name;
-	void (*func)(lfr_node_id_t, lfr_variant_t input[], lfr_variant_t output[], const lfr_graph_t *);
-	lfr_variant_t input_signature[lfr_signature_size], output_signature[lfr_signature_size];
-} lfr_instruction_def_t;
 
 const struct lfr_instruction_def_* lfr_get_instruction(lfr_instruction_e);
 
