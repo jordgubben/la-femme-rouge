@@ -58,7 +58,9 @@ typedef struct lfr_node_table_ {
 lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e, lfr_node_table_t*);
 unsigned lfr_get_node_index(lfr_node_id_t, const lfr_node_table_t *);
 lfr_vec2_t lfr_get_node_position(lfr_node_id_t, const lfr_node_table_t *);
+lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned, const lfr_node_table_t *);
 void lfr_set_node_position(lfr_node_id_t, lfr_vec2_t, lfr_node_table_t *);
+
 
 // Node serialization
 int lfr_save_node_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
@@ -420,6 +422,20 @@ Get position of a node in the table.
 **/
 lfr_vec2_t lfr_get_node_position(lfr_node_id_t id, const lfr_node_table_t *table) {
 	return table->position[T_INDEX(*table, id)];
+}
+
+
+
+/**
+Get the default value for the given node and slot.
+**/
+lfr_variant_t lfr_get_output_value(lfr_node_id_t id, unsigned slot, const lfr_node_table_t *table) {
+	assert(slot < lfr_signature_size);
+
+	// Instructions default value
+	lfr_instruction_e inst = table->node[T_INDEX(*table, id)].instruction;
+	const lfr_instruction_def_t *inst_def = lfr_get_instruction(inst);
+	return inst_def->output_signature[slot];
 }
 
 
