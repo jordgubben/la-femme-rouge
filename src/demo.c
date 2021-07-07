@@ -55,11 +55,11 @@ bool check_gl(const char* hint, int line);
 void show_example_window(struct nk_context *);
 
 // Editor
-void run_gui(lfr_graph_t *, lfr_toil_t *);
-void show_graph(app_t * app, lfr_graph_t *, lfr_toil_t *);
-void show_individual_node_window(lfr_node_id_t, lfr_graph_t *, lfr_toil_t *, app_t *);
+void run_gui(lfr_graph_t *, lfr_graph_state_t *);
+void show_graph(app_t * app, lfr_graph_t *, lfr_graph_state_t *);
+void show_individual_node_window(lfr_node_id_t, lfr_graph_t *, lfr_graph_state_t *, app_t *);
 void show_node_flow_bg_window(const lfr_graph_t *, const app_t *);
-void show_toil_queue(struct nk_context*, lfr_graph_t *, lfr_toil_t *);
+void show_state_queue(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
 
 int main( int argc, char** argv) {
 	lfr_graph_t graph = {0};
@@ -82,8 +82,8 @@ int main( int argc, char** argv) {
 	}
 
 	// Run graph in gui
-	lfr_toil_t toil = {0};
-	run_gui(&graph, &toil);
+	lfr_graph_state_t state = {0};
+	run_gui(&graph, &state);
 
 	// Optionally dump graph script to file
 	if (argc > 1) {
@@ -104,7 +104,7 @@ int main( int argc, char** argv) {
 /**
 Run a single window application, where a graph could be rendered.
 **/
-void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
+void run_gui(lfr_graph_t* graph, lfr_graph_state_t *state) {
 	// Initialize window application
 	app_t app = {0};
 	if(!init_gl_app(1024,768, &app)) {
@@ -131,15 +131,15 @@ void run_gui(lfr_graph_t* graph, lfr_toil_t *toil) {
 		double now = glfwGetTime();
 		while (now  > last_step_time + time_between_steps) {
 			last_step_time += time_between_steps;
-			lfr_step(graph, toil);
+			lfr_step(graph, state);
 		}
 
 		// Prep UI
 		nk_glfw3_new_frame(&glfw);
 
 		show_example_window(ctx);
-		show_graph(&app, graph, toil);
-		show_toil_queue(ctx, graph, toil);
+		show_graph(&app, graph, state);
+		show_state_queue(ctx, graph, state);
 
 		// Prepare rendering
 		int width, height;
@@ -205,8 +205,8 @@ void show_example_window(struct nk_context *ctx) {
 /**
 Show a script graph using Nuclear widgets.
 **/
-void show_graph(app_t *app, lfr_graph_t *graph, lfr_toil_t* toil) {
-	assert(app && graph && toil);
+void show_graph(app_t *app, lfr_graph_t *graph, lfr_graph_state_t* state) {
+	assert(app && graph && state);
 	struct nk_context *ctx = app->ctx;
 
 	// Show nodes as individual windows
@@ -214,7 +214,7 @@ void show_graph(app_t *app, lfr_graph_t *graph, lfr_toil_t* toil) {
 	int num_nodes = graph->nodes.num_rows;
 	for (int index = 0; index < num_nodes; index++) {
 		lfr_node_id_t node_id = node_ids[index];
-		show_individual_node_window(node_id, graph, toil, app);
+		show_individual_node_window(node_id, graph, state, app);
 	}
 
 	// Show node flow
@@ -230,9 +230,9 @@ void show_graph(app_t *app, lfr_graph_t *graph, lfr_toil_t* toil) {
 /**
 Show the window for an individual graph node.
 **/
-void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_toil_t *toil, app_t *app) {
+void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_graph_state_t *state, app_t *app) {
 	void show_node_main_flow_section(lfr_node_id_t, lfr_graph_t *, struct nk_context *);
-	assert(graph && toil && app);
+	assert(graph && state && app);
 	struct nk_context *ctx = app->ctx;
 
 	unsigned index = lfr_get_node_index(node_id, &graph->nodes);
@@ -248,7 +248,7 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 	struct nk_rect rect =  nk_rect(pos.x, pos.y, 300, 200);
 
 	// Show the window
-	bool highlight = (toil->num_schedueled_nodes && node_id.id ==  toil->schedueled_nodes[0].id);
+	bool highlight = (state->num_schedueled_nodes && node_id.id ==  state->schedueled_nodes[0].id);
 	nk_flags flags = 0
 		| NK_WINDOW_MOVABLE
 		| NK_WINDOW_SCALABLE
@@ -346,7 +346,7 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 		nk_label(ctx, "Example label", NK_TEXT_LEFT);
 		if (nk_button_label(ctx, "Schedule me")) {
 			printf("Scheduling node [#%u|%u]].\n", node_id.id, index);
-			lfr_schedule(node_id, graph, toil);
+			lfr_schedule(node_id, graph, state);
 		}
 
 		// Update node position
@@ -477,8 +477,8 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 /**
 Show queued nodes.
 **/
-void show_toil_queue(struct nk_context *ctx, lfr_graph_t *graph, lfr_toil_t *toil) {
-	assert(ctx && graph && toil);
+void show_state_queue(struct nk_context *ctx, lfr_graph_t *graph, lfr_graph_state_t *state) {
+	assert(ctx && graph && state);
 	// Example window
 	nk_flags window_flags = 0
 		| NK_WINDOW_MOVABLE
@@ -487,8 +487,8 @@ void show_toil_queue(struct nk_context *ctx, lfr_graph_t *graph, lfr_toil_t *toi
 		;
 	if (nk_begin(ctx, "Queued nodes", nk_rect(500,500, 300, 200), window_flags)) {
 		nk_layout_row_dynamic(ctx, 0, 1);
-		for (int i = 0 ; i < toil->num_schedueled_nodes; i++) {
-			lfr_node_id_t node_id = toil->schedueled_nodes[i];
+		for (int i = 0 ; i < state->num_schedueled_nodes; i++) {
+			lfr_node_id_t node_id = state->schedueled_nodes[i];
 			unsigned index = graph->nodes.sparse_id[node_id.id];
 			char label[1024];
 			snprintf(label, 1024, "Node [#%u|%u]", node_id.id, index);

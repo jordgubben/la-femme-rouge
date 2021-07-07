@@ -116,14 +116,14 @@ lfr_instruction_e lfr_find_instruction_from_name(const char* name);
 
 
 //// LFR script execution ////
-enum { lfr_toil_max_queue  = 8};
-typedef struct lfr_toil_ {
-	lfr_node_id_t schedueled_nodes[lfr_toil_max_queue];
+enum { lfr_graph_state__max_queue = 8};
+typedef struct lfr_graph_state_ {
+	lfr_node_id_t schedueled_nodes[lfr_graph_state__max_queue];
 	unsigned num_schedueled_nodes;
-} lfr_toil_t;
+} lfr_graph_state_t;
 
-void lfr_schedule(lfr_node_id_t, const lfr_graph_t *, lfr_toil_t *);
-int lfr_step(const lfr_graph_t *, lfr_toil_t *);
+void lfr_schedule(lfr_node_id_t, const lfr_graph_t *, lfr_graph_state_t *);
+int lfr_step(const lfr_graph_t *, lfr_graph_state_t *);
 
 #endif
 
@@ -171,13 +171,13 @@ const struct lfr_instruction_def_* lfr_get_instruction(lfr_instruction_e);
 /**
 Enqueue a node to process to the script executions todo-list (as long as there is space left in the queue).
 **/
-void lfr_schedule(lfr_node_id_t node_id, const lfr_graph_t *graph, lfr_toil_t *toil) {
+void lfr_schedule(lfr_node_id_t node_id, const lfr_graph_t *graph, lfr_graph_state_t *state) {
 	assert(T_HAS_ID(graph->nodes, node_id));
-	if (toil->num_schedueled_nodes >= lfr_toil_max_queue) {
+	if (state->num_schedueled_nodes >= lfr_graph_state__max_queue) {
 		fprintf(stderr, "%s(): Node queue is full!\n", __func__);
 		return;
 	}
-	toil->schedueled_nodes[toil->num_schedueled_nodes++] = node_id;
+	state->schedueled_nodes[state->num_schedueled_nodes++] = node_id;
 }
 
 
@@ -186,11 +186,11 @@ Execute topmost scheduled node (if any) from the script executions todo-list.
 
 Returns number of scheduled nodes, including the one executed.
 **/
-int lfr_step(const lfr_graph_t *graph, lfr_toil_t *toil) {
-	if (!toil->num_schedueled_nodes) { return 0; };
+int lfr_step(const lfr_graph_t *graph, lfr_graph_state_t *state) {
+	if (!state->num_schedueled_nodes) { return 0; };
 
 	// Find the right node
-	const lfr_node_id_t node_id = toil->schedueled_nodes[0];
+	const lfr_node_id_t node_id = state->schedueled_nodes[0];
 	const unsigned node_index = T_INDEX(graph->nodes, node_id);
 	const lfr_node_t *head = &graph->nodes.node[node_index];
 
@@ -204,15 +204,15 @@ int lfr_step(const lfr_graph_t *graph, lfr_toil_t *toil) {
 	for (int i =0; i < graph->num_flow_links; i++) {
 		const lfr_flow_link_t * link = &graph->flow_links[i];
 		if (T_SAME_ID(link->source_node, node_id)) {
-			lfr_schedule(link->target_node, graph, toil);
+			lfr_schedule(link->target_node, graph, state);
 		}
 	}
 
 	// Shuffle queue (inefficient)
-	for (int i = 1; i < toil->num_schedueled_nodes; i++) {
-		toil->schedueled_nodes[i-1] = toil->schedueled_nodes[i];
+	for (int i = 1; i < state->num_schedueled_nodes; i++) {
+		state->schedueled_nodes[i-1] = state->schedueled_nodes[i];
 	}
-	return toil->num_schedueled_nodes--;
+	return state->num_schedueled_nodes--;
 }
 
 
