@@ -144,6 +144,16 @@ int lfr_step(const lfr_graph_t *, lfr_toil_t *);
 #define LFR_TRACE(m, ...) \
 	printf("# %s():\t" m "\n", __func__, __VA_ARGS__);
 
+//// Internals (defined further down) ////
+
+/** Full definition of a single instruction. **/
+typedef struct lfr_instruction_def_ {
+	const char *name;
+	void (*func)(lfr_node_id_t, lfr_variant_t input[], lfr_variant_t output[], const lfr_graph_t *);
+} lfr_instruction_def_t;
+
+const struct lfr_instruction_def_* lfr_get_instruction(lfr_instruction_e);
+
 //// LFR script execution ////
 
 /**
@@ -173,10 +183,10 @@ int lfr_step(const lfr_graph_t *graph, lfr_toil_t *toil) {
 	const lfr_node_t *head = &graph->nodes.node[node_index];
 
 	// Process instruction
-	switch (head->instruction) {
-	case lfr_print_own_id: { printf("Node ID: [#%u|%u]\n", node_id.id, node_index); } break;
-	default: { assert(0); } break;
-	};
+	if (head->instruction < lfr_no_core_instructions) {
+		lfr_variant_t input[8], output[8];
+		lfr_get_instruction(head->instruction)->func(node_id, input, output, graph);
+	}
 
 	// Enqueue nodes - Continue flow throgh graph
 	for (int i =0; i < graph->num_flow_links; i++) {
@@ -442,20 +452,43 @@ int lfr_save_node_table_to_file(const lfr_node_table_t *table, FILE * restrict s
 
 //// LFR Instructions ////
 
-/** Full definition of a single instruction. **/
-typedef struct lfr_instruction_def_ {
-	const char *name;
-} lfr_instruction_def_t;
+void lfr_print_own_id_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		const lfr_graph_t* graph) {
 
-
-const char* lfr_get_instruction_name(lfr_instruction_e inst) {
-	switch(inst) {
-	case lfr_print_own_id: { return "lfr_print_own_id";}
-	default: { assert(0); return "Unknown LFR Instruction"; }
-	}
+	unsigned node_index = T_INDEX(graph->nodes, node_id);
+	printf("Node ID: [#%u|%u]\n", node_id.id, node_index);
 }
 
 
+/**
+Look up table of all core instructions.
+**/
+static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructions] = {
+	{"print_own_id", lfr_print_own_id_proc},
+};
+
+
+/**
+Get entire (code) instruction definition.
+**/
+const lfr_instruction_def_t* lfr_get_instruction(lfr_instruction_e inst) {
+	assert(inst < lfr_no_core_instructions);
+	return &lfr_core_instructions_[inst];
+}
+
+
+/**
+Get name of (core) instruction.
+**/
+const char* lfr_get_instruction_name(lfr_instruction_e inst) {
+	return lfr_get_instruction(inst)->name;
+}
+
+
+/**
+Get (core) instruction code from name.
+**/
 lfr_instruction_e lfr_find_instruction_from_name(const char* name) {
 	for (int i = 0; i < lfr_no_core_instructions; i++) {
 		if (strcmp(name, lfr_get_instruction_name(i)) == 0) {
