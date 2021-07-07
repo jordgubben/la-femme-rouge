@@ -60,9 +60,9 @@ typedef struct lfr_node_table_ {
 lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e, lfr_node_table_t*);
 unsigned lfr_get_node_index(lfr_node_id_t, const lfr_node_table_t *);
 lfr_vec2_t lfr_get_node_position(lfr_node_id_t, const lfr_node_table_t *);
-lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned, const lfr_node_table_t *);
+lfr_variant_t lfr_get_default_output_value(lfr_node_id_t, unsigned, const lfr_node_table_t *);
 void lfr_set_node_position(lfr_node_id_t, lfr_vec2_t, lfr_node_table_t *);
-void lfr_set_output_value(lfr_node_id_t, unsigned slot, lfr_variant_t, lfr_node_table_t *);
+void lfr_set_default_output_value(lfr_node_id_t, unsigned slot, lfr_variant_t, lfr_node_table_t *);
 
 
 // Node serialization
@@ -116,6 +116,7 @@ lfr_instruction_e lfr_find_instruction_from_name(const char* name);
 
 
 //// LFR script execution ////
+
 enum { lfr_graph_state__max_queue = 8};
 typedef struct lfr_graph_state_ {
 	lfr_node_id_t schedueled_nodes[lfr_graph_state__max_queue];
@@ -124,6 +125,8 @@ typedef struct lfr_graph_state_ {
 
 void lfr_schedule(lfr_node_id_t, const lfr_graph_t *, lfr_graph_state_t *);
 int lfr_step(const lfr_graph_t *, lfr_graph_state_t *);
+
+lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned slot, const lfr_graph_t*, const lfr_graph_state_t*);
 
 #endif
 
@@ -434,7 +437,7 @@ lfr_vec2_t lfr_get_node_position(lfr_node_id_t id, const lfr_node_table_t *table
 /**
 Get the default value for the given node and slot.
 **/
-lfr_variant_t lfr_get_output_value(lfr_node_id_t id, unsigned slot, const lfr_node_table_t *table) {
+lfr_variant_t lfr_get_default_output_value(lfr_node_id_t id, unsigned slot, const lfr_node_table_t *table) {
 	assert(slot < lfr_signature_size);
 
 	unsigned index = T_INDEX(*table, id);
@@ -463,7 +466,7 @@ void lfr_set_node_position(lfr_node_id_t id, lfr_vec2_t pos, lfr_node_table_t *t
 /**
 Set default date for the given node and slot.
 **/
-void lfr_set_output_value(lfr_node_id_t id, unsigned slot, lfr_variant_t value, lfr_node_table_t *table) {
+void lfr_set_default_output_value(lfr_node_id_t id, unsigned slot, lfr_variant_t value, lfr_node_table_t *table) {
 	assert(slot < lfr_signature_size);
 
 	unsigned index = T_INDEX(*table, id);
@@ -561,6 +564,17 @@ lfr_instruction_e lfr_find_instruction_from_name(const char* name) {
 	return fallback;
 }
 
+
+/**
+Get current value for the given node and slot.
+**/
+lfr_variant_t lfr_get_output_value(lfr_node_id_t id, unsigned slot,
+		const lfr_graph_t *graph, const lfr_graph_state_t *state) {
+	assert(graph && state);
+	assert(slot < lfr_signature_size);
+
+	return lfr_get_default_output_value(id, slot, &graph->nodes);
+}
 
 #undef T_HAS_ID
 #undef T_INDEX

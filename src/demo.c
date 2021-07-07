@@ -75,7 +75,8 @@ int main( int argc, char** argv) {
 		// Construct graph
 		lfr_node_id_t n1 = lfr_add_node(lfr_print_own_id, &graph);
 		lfr_node_id_t n2 = lfr_add_node(lfr_randomize_number, &graph);
-		lfr_set_output_value(n1, 0, (lfr_variant_t) {lfr_float_type, .float_value = 0.5}, &graph.nodes);
+		lfr_variant_t val = {lfr_float_type, .float_value = 0.5};
+		lfr_set_default_output_value(n1, 0, val, &graph.nodes);
 		lfr_node_id_t n3 = lfr_add_node(lfr_print_own_id, &graph);
 		lfr_link_nodes(n1, n2, &graph);
 		lfr_link_nodes(n1, n3, &graph);
@@ -324,7 +325,7 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 
 				nk_layout_row_dynamic(ctx, 0, 2);
 				for (int i = 0; i < lfr_signature_size; i++) {
-					lfr_variant_t data = lfr_get_output_value(node_id, i, &graph->nodes);
+					lfr_variant_t data = lfr_get_output_value(node_id, i, graph, state);
 					if (data.type != lfr_nil_type) {
 						char label[16];
 
