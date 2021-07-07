@@ -552,7 +552,7 @@ void lfr_randomize_number_proc(lfr_node_id_t node_id,
 
 	// Assign random float value
 	output[0].type = lfr_float_type;
-	output[0].float_value = 0.17; // A random number as good as any
+	output[0].float_value = (float)(rand())/(float)(RAND_MAX);
 	return;
 }
 

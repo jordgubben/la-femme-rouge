@@ -6,6 +6,7 @@ LFR Scripting demo.
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 // OpenGl et.al.
