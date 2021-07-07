@@ -324,19 +324,26 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 				nk_layout_row_dynamic(ctx, 0, 1);
 				nk_label(ctx, "Output", NK_TEXT_RIGHT);
 
-				nk_layout_row_dynamic(ctx, 0, 2);
 				for (int i = 0; i < lfr_signature_size; i++) {
 					const char* name = lfr_get_instruction(inst)->output_signature[i].name;
 					lfr_variant_t data = lfr_get_output_value(node_id, i, graph, state);
 					if (data.type != lfr_nil_type  && name) {
 						char label[16];
 
-						// Name
-						nk_label(ctx, name, NK_TEXT_RIGHT);
+						// Name (+ dummy buttons)
+						nk_layout_row_template_begin(ctx, 15);
+						nk_layout_row_template_push_dynamic(ctx);
+						nk_layout_row_template_push_static(ctx, 20);
+						nk_layout_row_template_push_static(ctx, 20);
+						nk_layout_row_template_end(ctx);
+						nk_label(ctx, name, NK_TEXT_LEFT);
+						nk_button_label(ctx, "x");
+						nk_button_label(ctx, "+");
 
 						// Value
+						nk_layout_row_dynamic(ctx, 0, 1);
 						snprintf(label, 16, "(%.3f)", data.float_value);
-						nk_label(ctx, label, NK_TEXT_LEFT);
+						nk_label(ctx, label, NK_TEXT_RIGHT);
 					}
 				}
 				nk_group_end(ctx);

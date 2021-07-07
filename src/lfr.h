@@ -566,7 +566,7 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 	{"print_own_id", lfr_print_own_id_proc, {}, {}},
 	{"randomize_number", lfr_randomize_number_proc,
 		{},
-		{{"Random float",  {lfr_float_type, .float_value = 0 }}
+		{{"RND float",  {lfr_float_type, .float_value = 0 }}
 		}
 	},
 };
