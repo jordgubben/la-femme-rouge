@@ -460,7 +460,11 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 
 	if (nk_begin(ctx, bg_window_title, nk_rect(0,0, 1024, 768), NK_WINDOW_BACKGROUND)) {
 		struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+
+		// Black canvas
 		nk_fill_rect(canvas, nk_window_get_bounds(ctx), 0.f, nk_rgb(20,20,20));
+
+		// Flow lines
 		for (int i = 0; i < graph->num_flow_links; i++) {
 			const lfr_flow_link_t *link = &graph->flow_links[i];
 			// Source end
@@ -472,11 +476,33 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 			lfr_vec2_t p2 = lfr_get_node_position(link->target_node, &graph->nodes);
 			p2.y += 20;
 
-			// Draw line
+			// Draw curve
 			const float ex = 75;
 			nk_stroke_curve(canvas,
 				p1.x, p1.y, p1.x + ex, p1.y, p2.x - ex, p2.y, p2.x, p2.y,
 				2.f, nk_rgb(100,100,100));
+		}
+
+		// Data lines
+		for (int node_index = 0; node_index < graph->nodes.num_rows; node_index++) {
+			lfr_node_id_t in_node_id = graph->nodes.dense_id[node_index];
+			const lfr_node_t *node = &graph->nodes.node[node_index];
+			lfr_vec2_t node_win_pos = lfr_get_node_position(in_node_id, &graph->nodes);
+
+			// For every linked input slot
+			for (int slot = 0; slot < lfr_signature_size; slot++) {
+				lfr_node_id_t out_node = node->input_data[slot].node;
+				if (!out_node.id) { continue; }
+				lfr_vec2_t out_win_pos = lfr_get_node_position(out_node, &graph->nodes);
+				out_win_pos.x += 300;
+
+				// Draw curve
+				const float ex = 100;
+				nk_stroke_curve(canvas,
+					out_win_pos.x, out_win_pos.y, out_win_pos.x + ex, out_win_pos.y,
+					node_win_pos.x - ex, node_win_pos.y, node_win_pos.x, node_win_pos.y,
+					2.f, nk_rgb(200,200,100));
+			}
 		}
 
 		// Select previous node in flow
