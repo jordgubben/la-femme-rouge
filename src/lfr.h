@@ -30,6 +30,7 @@ typedef struct lfr_variant_ {
 typedef enum lfr_instruction_ {
 	lfr_print_own_id,
 	lfr_randomize_number,
+	lfr_add,
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
@@ -41,6 +42,11 @@ typedef struct lfr_node_id_ { unsigned id; } lfr_node_id_t;
 enum {lfr_signature_size = 8};
 typedef struct lfr_node_ {
 	lfr_instruction_e instruction;
+	struct {
+		lfr_node_id_t node;
+		unsigned int slot;
+		lfr_variant_t fixed_value;
+	} input_data[lfr_signature_size];
 	lfr_variant_t output_data[lfr_signature_size];
 } lfr_node_t;
 
@@ -60,8 +66,10 @@ typedef struct lfr_node_table_ {
 lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e, lfr_node_table_t*);
 unsigned lfr_get_node_index(lfr_node_id_t, const lfr_node_table_t *);
 lfr_vec2_t lfr_get_node_position(lfr_node_id_t, const lfr_node_table_t *);
+lfr_variant_t lfr_get_input_value(lfr_node_id_t, unsigned slot, const lfr_node_table_t *);
 lfr_variant_t lfr_get_default_output_value(lfr_node_id_t, unsigned, const lfr_node_table_t *);
 void lfr_set_node_position(lfr_node_id_t, lfr_vec2_t, lfr_node_table_t *);
+void lfr_set_fixed_input_value(lfr_node_id_t, unsigned slot, lfr_variant_t, lfr_node_table_t *);
 void lfr_set_default_output_value(lfr_node_id_t, unsigned slot, lfr_variant_t, lfr_node_table_t *);
 
 
@@ -231,6 +239,13 @@ int lfr_step(const lfr_graph_t *graph, lfr_graph_state_t *state) {
 	// Process instruction
 	if (head->instruction < lfr_no_core_instructions) {
 		lfr_variant_t input[8] = {0}, output[8] = {0};
+
+		// Get Input
+		for (int i = 0; i < lfr_signature_size; i++) {
+			input[i] = lfr_get_input_value(node_id, i, &graph->nodes);
+		}
+
+		// Process instruction
 		lfr_get_instruction(head->instruction)->func(node_id, input, output, graph);
 
 		// Update node state with new result data
@@ -470,6 +485,26 @@ lfr_vec2_t lfr_get_node_position(lfr_node_id_t id, const lfr_node_table_t *table
 }
 
 
+/**
+Get (fixed) input value for given node and slot.
+**/
+lfr_variant_t lfr_get_input_value(lfr_node_id_t id, unsigned slot, const lfr_node_table_t *table) {
+	assert(slot < lfr_signature_size);
+
+	unsigned index = T_INDEX(*table, id);
+
+	// Graph node fixed value
+	lfr_variant_t graph_data = table->node[index].input_data[slot].fixed_value;
+	if (graph_data.type != lfr_nil_type) {
+		return graph_data;
+	}
+
+	// Instructions default value
+	lfr_instruction_e inst = table->node[index].instruction;
+	const lfr_instruction_def_t *inst_def = lfr_get_instruction(inst);
+	return inst_def->input_signature[slot].data;
+}
+
 
 /**
 Get the default value for the given node and slot.
@@ -497,6 +532,21 @@ Set position of a node in the table.
 **/
 void lfr_set_node_position(lfr_node_id_t id, lfr_vec2_t pos, lfr_node_table_t *table) {
 	table->position[T_INDEX(*table, id)] = pos;
+}
+
+
+/**
+Set a fixed value as input for the given node and slot.
+
+Note:
+ Breaks/Clears any previously existing data link.
+**/
+void lfr_set_fixed_input_value(lfr_node_id_t id, unsigned slot, lfr_variant_t value, lfr_node_table_t *table) {
+	assert(slot < lfr_signature_size);
+
+	unsigned index = T_INDEX(*table, id);
+	table->node[index].input_data[slot].node = (lfr_node_id_t) {0};
+	table->node[index].input_data[slot].fixed_value = value;
 }
 
 
@@ -559,6 +609,26 @@ void lfr_randomize_number_proc(lfr_node_id_t node_id,
 	return;
 }
 
+
+/**
+Combine floats into a sum.
+**/
+void lfr_add_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		const lfr_graph_t* graph) {
+
+	// Sum all floats
+	lfr_variant_t result = {lfr_float_type, .float_value = 0};
+	for (int i = 0; i < lfr_signature_size; i++) {
+		if (input[i].type == lfr_float_type) {
+			result.float_value += input[i].float_value;
+		}
+	}
+
+	// Assign result
+	output[0] = result;
+}
+
 /**
 Look up table of all core instructions.
 **/
@@ -566,8 +636,11 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 	{"print_own_id", lfr_print_own_id_proc, {}, {}},
 	{"randomize_number", lfr_randomize_number_proc,
 		{},
-		{{"RND float",  {lfr_float_type, .float_value = 0 }}
-		}
+		{{"RND float",  {lfr_float_type, .float_value = 0 }}}
+	},
+	{"add", lfr_add_proc,
+		{{"A", {lfr_float_type, .float_value = 0}}, {"B", {lfr_float_type, .float_value = 0}}},
+		{{"SUM", {lfr_float_type, .float_value = 0}}}
 	},
 };
 
