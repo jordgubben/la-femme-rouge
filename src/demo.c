@@ -46,6 +46,7 @@ typedef struct app_ {
 	editor_mode_e mode;
 	lfr_node_id_t active_node_id;
 	float input_ys[lfr_node_table_max_rows][lfr_signature_size];
+	float output_ys[lfr_node_table_max_rows][lfr_signature_size];
 } app_t;
 
 // GL basics
@@ -362,10 +363,17 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 				nk_layout_row_dynamic(ctx, 0, 1);
 				nk_label(ctx, "Output", NK_TEXT_RIGHT);
 
-				for (int i = 0; i < lfr_signature_size; i++) {
-					const char* name = lfr_get_instruction(inst)->output_signature[i].name;
-					lfr_variant_t data = lfr_get_output_value(node_id, i, graph, state);
+				for (int slot = 0; slot < lfr_signature_size; slot++) {
+					const char* name = lfr_get_instruction(inst)->output_signature[slot].name;
+					lfr_variant_t data = lfr_get_output_value(node_id, slot, graph, state);
 					if (data.type != lfr_nil_type  && name) {
+
+						// Get current y
+						// (Use when rendering slot connections)
+						struct nk_panel* panel = nk_window_get_panel(ctx);
+						snprintf(label, 16, "UI: (%.1f, %.1f)", panel->at_x, panel->at_y);
+						nk_label(ctx, label, NK_TEXT_CENTERED);
+						app->output_ys[index][slot] = panel->at_y;
 
 						// Name (+ dummy buttons)
 						nk_layout_row_template_begin(ctx, 15);
@@ -498,20 +506,23 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 
 			// For every linked input slot
 			for (int slot = 0; slot < lfr_signature_size; slot++) {
-				lfr_node_id_t out_node = node->input_data[slot].node;
-				if (!out_node.id) { continue; }
+				lfr_node_id_t out_node_id = node->input_data[slot].node;
+				if (!out_node_id.id) { continue; }
 
 				// Input slot height (on this node)
 				lfr_vec2_t in_pos = {node_win_pos.x, app->input_ys[node_index][slot]};
 
-				// Outpur slot (on other node)
-				lfr_vec2_t out_win_pos = lfr_get_node_position(out_node, &graph->nodes);
-				out_win_pos.x += 300;
+				// Output slot position (on other node)
+				lfr_vec2_t out_pos = lfr_get_node_position(out_node_id, &graph->nodes);
+				out_pos.x += 300;
+				unsigned output_index = lfr_get_node_index(out_node_id, &graph->nodes);
+				unsigned output_slot = node->input_data[slot].slot;
+				out_pos.y = app->output_ys[output_index][output_slot];
 
 				// Draw curve
 				const float ex = 100;
 				nk_stroke_curve(canvas,
-					out_win_pos.x, out_win_pos.y, out_win_pos.x + ex, out_win_pos.y,
+					out_pos.x, out_pos.y, out_pos.x + ex, out_pos.y,
 					in_pos.x - ex, in_pos.y, in_pos.x, in_pos.y,
 					2.f, nk_rgb(200,200,100));
 			}
