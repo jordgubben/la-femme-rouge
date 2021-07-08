@@ -321,7 +321,7 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 		// Data (input and output)
 		{
 			char label[16];
-			nk_layout_row_dynamic(ctx, 200, 2);
+			nk_layout_row_dynamic(ctx, 150, 2);
 			const nk_flags group_flags = 0
 				;
 
@@ -334,13 +334,6 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 					const char* name = lfr_get_instruction(inst)->input_signature[slot].name;
 					if (!name) { continue; };
 
-					// Get current y
-					// (Use when rendering slot connections)
-					struct nk_panel* panel = nk_window_get_panel(ctx);
-					snprintf(label, 16, "UI: (%.1f, %.1f)", panel->at_x, panel->at_y);
-					nk_label(ctx, label, NK_TEXT_CENTERED);
-					app->input_ys[index][slot] = panel->at_y;
-
 					// Name (+ dummy buttons)
 					nk_layout_row_template_begin(ctx, 15);
 					nk_layout_row_template_push_static(ctx, 40);
@@ -348,6 +341,11 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 					nk_layout_row_template_end(ctx);
 					nk_button_label(ctx, "+/x");
 					nk_label(ctx, name, NK_TEXT_LEFT);
+
+					// Get current y
+					// (Use when rendering slot connections)
+					struct nk_panel* panel = nk_window_get_panel(ctx);
+					app->input_ys[index][slot] = panel->at_y + 15/2;
 
 					// Curent input value (linked or fixed)
 					nk_layout_row_dynamic(ctx, 0, 1);
@@ -368,13 +366,6 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 					lfr_variant_t data = lfr_get_output_value(node_id, slot, graph, state);
 					if (data.type != lfr_nil_type  && name) {
 
-						// Get current y
-						// (Use when rendering slot connections)
-						struct nk_panel* panel = nk_window_get_panel(ctx);
-						snprintf(label, 16, "UI: (%.1f, %.1f)", panel->at_x, panel->at_y);
-						nk_label(ctx, label, NK_TEXT_CENTERED);
-						app->output_ys[index][slot] = panel->at_y;
-
 						// Name (+ dummy buttons)
 						nk_layout_row_template_begin(ctx, 15);
 						nk_layout_row_template_push_dynamic(ctx);
@@ -384,6 +375,11 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 						nk_label(ctx, name, NK_TEXT_LEFT);
 						nk_button_label(ctx, "x");
 						nk_button_label(ctx, "+");
+
+						// Get current y
+						// (Use when rendering slot connections)
+						struct nk_panel* panel = nk_window_get_panel(ctx);
+						app->output_ys[index][slot] = panel->at_y + 15/2;
 
 						// Value
 						nk_layout_row_dynamic(ctx, 0, 1);
