@@ -66,12 +66,11 @@ typedef struct lfr_node_table_ {
 lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e, lfr_node_table_t*);
 unsigned lfr_get_node_index(lfr_node_id_t, const lfr_node_table_t *);
 lfr_vec2_t lfr_get_node_position(lfr_node_id_t, const lfr_node_table_t *);
-lfr_variant_t lfr_get_input_value(lfr_node_id_t, unsigned slot, const lfr_node_table_t *);
+lfr_variant_t lfr_get_fixed_input_value(lfr_node_id_t, unsigned slot, const lfr_node_table_t *);
 lfr_variant_t lfr_get_default_output_value(lfr_node_id_t, unsigned, const lfr_node_table_t *);
 void lfr_set_node_position(lfr_node_id_t, lfr_vec2_t, lfr_node_table_t *);
 void lfr_set_fixed_input_value(lfr_node_id_t, unsigned slot, lfr_variant_t, lfr_node_table_t *);
 void lfr_set_default_output_value(lfr_node_id_t, unsigned slot, lfr_variant_t, lfr_node_table_t *);
-
 
 // Node serialization
 int lfr_save_node_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
@@ -98,12 +97,15 @@ void lfr_init_graph(lfr_graph_t *);
 void lfr_term_graph(lfr_graph_t *);
 lfr_node_id_t lfr_add_node(lfr_instruction_e, lfr_graph_t *);
 
-// Link CRUD
+// Flow link CRUD
 void lfr_link_nodes(lfr_node_id_t, lfr_node_id_t, lfr_graph_t*);
 bool lfr_has_link(lfr_node_id_t, lfr_node_id_t, const lfr_graph_t*);
 unsigned lfr_count_node_source_links(lfr_node_id_t, const lfr_graph_t*);
 unsigned lfr_count_node_target_links(lfr_node_id_t, const lfr_graph_t*);
 void lfr_unlink_nodes(lfr_node_id_t, lfr_node_id_t, lfr_graph_t*);
+
+// Data link CRUD
+void lfr_link_data(lfr_node_id_t, unsigned, lfr_node_id_t, unsigned, lfr_graph_t*);
 
 // Graph serialization
 void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph);
@@ -160,6 +162,7 @@ typedef struct lfr_graph_state_ {
 } lfr_graph_state_t;
 
 
+lfr_variant_t lfr_get_input_value(lfr_node_id_t, unsigned slot, const lfr_graph_t*, const lfr_graph_state_t*);
 lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned slot, const lfr_graph_t*, const lfr_graph_state_t*);
 
 
@@ -242,7 +245,7 @@ int lfr_step(const lfr_graph_t *graph, lfr_graph_state_t *state) {
 
 		// Get Input
 		for (int i = 0; i < lfr_signature_size; i++) {
-			input[i] = lfr_get_input_value(node_id, i, &graph->nodes);
+			input[i] = lfr_get_input_value(node_id, i, graph, state);
 		}
 
 		// Process instruction
@@ -378,6 +381,30 @@ void lfr_unlink_nodes(lfr_node_id_t source_node, lfr_node_id_t target_node, lfr_
 }
 
 
+
+/**
+Link output data of one node with input data of another.
+
+API note:
+ Actually only uses the nodes table of the graph, but the entire graph is provided as input to
+ keep API simmilar to that of linking node flow.
+**/
+void lfr_link_data(lfr_node_id_t out_node, unsigned out_slot, lfr_node_id_t in_node, unsigned in_slot,
+		lfr_graph_t* graph) {
+	assert(graph);
+	assert(T_HAS_ID(graph->nodes, out_node) && T_HAS_ID(graph->nodes, in_node));
+	assert(out_slot < lfr_signature_size && in_slot < lfr_signature_size);
+
+	// Get node table (the only data we actuall need)
+	lfr_node_table_t *table = &graph->nodes;
+
+	// Set link
+	unsigned in_index = T_INDEX(*table, in_node);
+	table->node[in_index].input_data[in_slot].node = out_node;
+	table->node[in_index].input_data[in_slot].slot = out_slot;
+}
+
+
 /**
 Load graph content from (tab separated) file.
 **/
@@ -488,7 +515,7 @@ lfr_vec2_t lfr_get_node_position(lfr_node_id_t id, const lfr_node_table_t *table
 /**
 Get (fixed) input value for given node and slot.
 **/
-lfr_variant_t lfr_get_input_value(lfr_node_id_t id, unsigned slot, const lfr_node_table_t *table) {
+lfr_variant_t lfr_get_fixed_input_value(lfr_node_id_t id, unsigned slot, const lfr_node_table_t *table) {
 	assert(slot < lfr_signature_size);
 
 	unsigned index = T_INDEX(*table, id);
@@ -713,8 +740,32 @@ bool lfr_node_state_table_contains(lfr_node_id_t id, const lfr_node_state_table_
 
 //// LFR Graph state ////
 
+
 /**
-Get current value for the given node and slot.
+Get current value for the given node and *input* slot.
+**/
+lfr_variant_t lfr_get_input_value(lfr_node_id_t id, unsigned slot,
+		const lfr_graph_t *graph, const lfr_graph_state_t *state) {
+	assert(graph && state);
+	assert(T_HAS_ID(graph->nodes, id));
+	assert(slot < lfr_signature_size);
+
+	// Get data from linked output node slot if available
+	unsigned index = T_INDEX(graph->nodes, id);
+	const lfr_node_t *node = &graph->nodes.node[index];
+	lfr_node_id_t out_node = node->input_data[slot].node;
+	if (out_node.id) {
+		unsigned out_slot = node->input_data[slot].slot;
+		return lfr_get_output_value(out_node, out_slot, graph, state);
+	}
+
+	// Otherwise return fixed value from (imutable) graph
+	return lfr_get_fixed_input_value(id, slot, &graph->nodes);
+}
+
+
+/**
+Get current value for the given node and *output* slot.
 **/
 lfr_variant_t lfr_get_output_value(lfr_node_id_t id, unsigned slot,
 		const lfr_graph_t *graph, const lfr_graph_state_t *state) {

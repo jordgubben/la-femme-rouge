@@ -86,7 +86,7 @@ int main( int argc, char** argv) {
 		lfr_variant_t val_a = {lfr_float_type, .float_value = 1.5};
 		lfr_set_fixed_input_value(n3, 0, val_a, &graph.nodes);
 		lfr_variant_t val_b = {lfr_float_type, .float_value = 2.5};
-		lfr_set_fixed_input_value(n3, 1, val_b, &graph.nodes);
+		lfr_link_data(n2, 0, n3, 1, &graph);
 
 		// Links
 		lfr_link_nodes(n1, n2, &graph);
