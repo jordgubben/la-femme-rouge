@@ -326,6 +326,26 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 			if (nk_group_begin(ctx, "Input data", group_flags)) {
 				nk_layout_row_dynamic(ctx, 0, 1);
 				nk_label(ctx, "Input", NK_TEXT_LEFT);
+
+				for (int slot = 0; slot < lfr_signature_size; slot++) {
+					const char* name = lfr_get_instruction(inst)->input_signature[slot].name;
+					if (!name) { continue; };
+
+					// Name (+ dummy buttons)
+					nk_layout_row_template_begin(ctx, 15);
+					nk_layout_row_template_push_static(ctx, 40);
+					nk_layout_row_template_push_dynamic(ctx);
+					nk_layout_row_template_end(ctx);
+					nk_button_label(ctx, "+/x");
+					nk_label(ctx, name, NK_TEXT_LEFT);
+
+					// Curent input value (linked or fixed)
+					nk_layout_row_dynamic(ctx, 0, 1);
+					lfr_variant_t data = lfr_get_input_value(node_id, slot, graph, state);
+					char label[16];
+					snprintf(label, 16, "(%.3f)", data.float_value);
+					nk_label(ctx, label, NK_TEXT_RIGHT);
+				}
 				nk_group_end(ctx);
 			}
 
@@ -338,7 +358,6 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 					const char* name = lfr_get_instruction(inst)->output_signature[i].name;
 					lfr_variant_t data = lfr_get_output_value(node_id, i, graph, state);
 					if (data.type != lfr_nil_type  && name) {
-						char label[16];
 
 						// Name (+ dummy buttons)
 						nk_layout_row_template_begin(ctx, 15);
@@ -352,6 +371,7 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 
 						// Value
 						nk_layout_row_dynamic(ctx, 0, 1);
+						char label[16];
 						snprintf(label, 16, "(%.3f)", data.float_value);
 						nk_label(ctx, label, NK_TEXT_RIGHT);
 					}
