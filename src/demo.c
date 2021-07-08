@@ -45,6 +45,7 @@ typedef struct app_ {
 	struct nk_context *ctx;
 	editor_mode_e mode;
 	lfr_node_id_t active_node_id;
+	float input_ys[lfr_node_table_max_rows][lfr_signature_size];
 } app_t;
 
 // GL basics
@@ -318,7 +319,8 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 
 		// Data (input and output)
 		{
-			nk_layout_row_dynamic(ctx, 100, 2);
+			char label[16];
+			nk_layout_row_dynamic(ctx, 200, 2);
 			const nk_flags group_flags = 0
 				;
 
@@ -331,6 +333,13 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 					const char* name = lfr_get_instruction(inst)->input_signature[slot].name;
 					if (!name) { continue; };
 
+					// Get current y
+					// (Use when rendering slot connections)
+					struct nk_panel* panel = nk_window_get_panel(ctx);
+					snprintf(label, 16, "UI: (%.1f, %.1f)", panel->at_x, panel->at_y);
+					nk_label(ctx, label, NK_TEXT_CENTERED);
+					app->input_ys[index][slot] = panel->at_y;
+
 					// Name (+ dummy buttons)
 					nk_layout_row_template_begin(ctx, 15);
 					nk_layout_row_template_push_static(ctx, 40);
@@ -342,7 +351,6 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 					// Curent input value (linked or fixed)
 					nk_layout_row_dynamic(ctx, 0, 1);
 					lfr_variant_t data = lfr_get_input_value(node_id, slot, graph, state);
-					char label[16];
 					snprintf(label, 16, "(%.3f)", data.float_value);
 					nk_label(ctx, label, NK_TEXT_RIGHT);
 				}
@@ -371,7 +379,6 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 
 						// Value
 						nk_layout_row_dynamic(ctx, 0, 1);
-						char label[16];
 						snprintf(label, 16, "(%.3f)", data.float_value);
 						nk_label(ctx, label, NK_TEXT_RIGHT);
 					}
@@ -487,12 +494,17 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 		for (int node_index = 0; node_index < graph->nodes.num_rows; node_index++) {
 			lfr_node_id_t in_node_id = graph->nodes.dense_id[node_index];
 			const lfr_node_t *node = &graph->nodes.node[node_index];
-			lfr_vec2_t node_win_pos = lfr_get_node_position(in_node_id, &graph->nodes);
+			const lfr_vec2_t node_win_pos = lfr_get_node_position(in_node_id, &graph->nodes);
 
 			// For every linked input slot
 			for (int slot = 0; slot < lfr_signature_size; slot++) {
 				lfr_node_id_t out_node = node->input_data[slot].node;
 				if (!out_node.id) { continue; }
+
+				// Input slot height (on this node)
+				lfr_vec2_t in_pos = {node_win_pos.x, app->input_ys[node_index][slot]};
+
+				// Outpur slot (on other node)
 				lfr_vec2_t out_win_pos = lfr_get_node_position(out_node, &graph->nodes);
 				out_win_pos.x += 300;
 
@@ -500,7 +512,7 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 				const float ex = 100;
 				nk_stroke_curve(canvas,
 					out_win_pos.x, out_win_pos.y, out_win_pos.x + ex, out_win_pos.y,
-					node_win_pos.x - ex, node_win_pos.y, node_win_pos.x, node_win_pos.y,
+					in_pos.x - ex, in_pos.y, in_pos.x, in_pos.y,
 					2.f, nk_rgb(200,200,100));
 			}
 		}
