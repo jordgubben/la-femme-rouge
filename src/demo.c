@@ -194,20 +194,18 @@ void show_example_window(struct nk_context *ctx) {
 		| NK_WINDOW_MOVABLE
 		| NK_WINDOW_SCALABLE
 		| NK_WINDOW_TITLE
+		| NK_WINDOW_MINIMIZABLE
 		;
-	if (nk_begin(ctx, "Example window", nk_rect(100,500, 300, 200), window_flags)) {
+	if (nk_begin(ctx, "Example window", nk_rect(25, 300, 500, 500), window_flags)) {
 		nk_layout_row_dynamic(ctx, 0, 2);
 		nk_label(ctx, "Example label", NK_TEXT_LEFT);
 		if (nk_button_label(ctx, "Example button")) {
 			printf("Button pressed!\n");
 		}
 
-		// Group inside window
+		// Simple group inside window
 		nk_layout_row_dynamic(ctx, 75, 1);
-		nk_flags group_flags = 0
-			| NK_WINDOW_TITLE
-			;
-		if (nk_group_begin(ctx, "Example group", group_flags)) {
+		if (nk_group_begin(ctx, "Example group", NK_WINDOW_TITLE)) {
 			nk_layout_row_dynamic(ctx, 25, 3);
 			nk_label(ctx, "Label L", NK_TEXT_LEFT);
 			nk_label(ctx, "Label C", NK_TEXT_CENTERED);
@@ -215,9 +213,56 @@ void show_example_window(struct nk_context *ctx) {
 			nk_group_end(ctx);
 		}
 
-		// Label after group
+		// Group positioned with space layout
+		nk_layout_space_begin(ctx, NK_STATIC, 200, 1);
+		{
+			static struct nk_rect group_placement = {0,0, 200, 200};
+			struct nk_panel *group_panel;
+			nk_layout_space_push(ctx, group_placement);
+			if (nk_group_begin(ctx, "Space group", NK_WINDOW_TITLE | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE)) {
+				group_panel = nk_window_get_panel(ctx);
+
+				// Group placement
+				nk_layout_row_dynamic(ctx, 10, 1);
+				nk_label(ctx, "Group placement", NK_TEXT_LEFT);
+				nk_layout_row_dynamic(ctx, 15, 2);
+				nk_property_float(ctx, "x", 0, &group_placement.x, 1000, 1,1);
+				nk_property_float(ctx, "y", 0, &group_placement.y, 1000, 1,1);
+				nk_property_float(ctx, "w", 0, &group_placement.w, 1000, 1,1);
+				nk_property_float(ctx, "h", 0, &group_placement.h, 1000, 1,1);
+
+				// Panel offset
+				nk_layout_row_dynamic(ctx, 10, 1);
+				nk_label(ctx, "Panel offset", NK_TEXT_LEFT);
+				nk_layout_row_dynamic(ctx, 15, 2);
+				int ox =  *group_panel->offset_x,  oy =  *group_panel->offset_y;
+				nk_property_int(ctx, "x", 0, &ox, 1000, 1,1);
+				nk_property_int(ctx, "y", 0, &oy, 1000, 1,1);
+
+				// Panel at
+				nk_layout_row_dynamic(ctx, 10, 1);
+				nk_label(ctx, "Panel at", NK_TEXT_LEFT);
+				nk_layout_row_dynamic(ctx, 15, 2);
+				nk_property_float(ctx, "x", 0, &group_panel->at_x, 1000, 1,1);
+				nk_property_float(ctx, "y", 0, &group_panel->at_y, 1000, 1,1);
+
+				// Group panel bounds
+				nk_layout_row_dynamic(ctx, 10, 1);
+				nk_label(ctx, "Panel bounds", NK_TEXT_LEFT);
+				nk_layout_row_dynamic(ctx, 15, 2);
+				nk_property_float(ctx, "x", 0, &group_panel->bounds.x, 1000, 1,1);
+				nk_property_float(ctx, "y", 0, &group_panel->bounds.y, 1000, 1,1);
+				nk_property_float(ctx, "w", 0, &group_panel->bounds.w, 1000, 1,1);
+				nk_property_float(ctx, "h", 0, &group_panel->bounds.h, 1000, 1,1);
+				nk_group_end(ctx);
+			}
+			group_placement = nk_layout_space_rect_to_local(ctx, group_panel->bounds);
+		}
+		nk_layout_space_end(ctx);
+
+		// Label after group(s)
 		nk_layout_row_dynamic(ctx, 0, 1);
-		nk_label(ctx, "~ After group ~", NK_TEXT_CENTERED);
+		nk_label(ctx, "~ After group(s) ~", NK_TEXT_CENTERED);
 	}
 	nk_end(ctx);
 }
