@@ -37,14 +37,20 @@ typedef enum editor_mode_ {
 	em_normal,
 	em_select_flow_prev,
 	em_select_flow_next,
+	em_select_data_link_input,
 	no_em_modes // Not a mode :P
 } editor_mode_e;
 
 typedef struct app_ {
 	GLFWwindow* window;
 	struct nk_context *ctx;
+
+	// Interaction (mode based)
 	editor_mode_e mode;
 	lfr_node_id_t active_node_id;
+	unsigned active_slot;
+
+	// Layout
 	float input_ys[lfr_node_table_max_rows][lfr_signature_size];
 	float output_ys[lfr_node_table_max_rows][lfr_signature_size];
 } app_t;
@@ -427,7 +433,21 @@ void show_node_input_slots_group(
 			nk_layout_row_template_push_static(ctx, 40);
 			nk_layout_row_template_push_dynamic(ctx);
 			nk_layout_row_template_end(ctx);
-			nk_button_label(ctx, "+/x");
+			if (app->mode == em_select_data_link_input) {
+				// Link output slot on active node to input slot on this node
+				if (nk_button_label(ctx, "Link!")) {
+					// Link
+					lfr_link_data(
+						app->active_node_id, app->active_slot,
+						node_id, slot,
+						graph);
+
+					// Clear editor mode
+					app->mode = em_normal;
+				}
+			} else {
+				nk_button_label(ctx, "+/x");
+			}
 			nk_label(ctx, name, NK_TEXT_LEFT);
 
 			// Get current y
@@ -479,7 +499,11 @@ void show_node_output_slots_group(
 				nk_layout_row_template_end(ctx);
 				nk_label(ctx, name, NK_TEXT_LEFT);
 				nk_button_label(ctx, "x");
-				nk_button_label(ctx, "+");
+				if (nk_button_label(ctx, "+")) {
+					app->mode = em_select_data_link_input;
+					app->active_node_id = node_id;
+					app->active_slot = slot;
+				}
 
 				// Get current y
 				// (Use when rendering slot connections)
