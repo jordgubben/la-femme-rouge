@@ -487,67 +487,67 @@ void show_node_output_slots_group(
 	assert(state && graph && app && app->ctx);
 	struct nk_context *ctx = app->ctx;
 
+	// Start group - Eary out if it is hidden
+	const nk_flags group_flags = 0;
+	if (!nk_group_begin(ctx, "Output data", group_flags)) { return; }
+	nk_layout_row_dynamic(ctx, 0, 1);
+	nk_label(ctx, "Output", NK_TEXT_RIGHT);
+
+	// Get node info
 	unsigned node_index = lfr_get_node_index(node_id, &graph->nodes);
 	lfr_instruction_e inst = graph->nodes.node[node_index].instruction;
 
-	const nk_flags group_flags = 0;
-	if (nk_group_begin(ctx, "Output data", group_flags)) {
-		nk_layout_row_dynamic(ctx, 0, 1);
-		nk_label(ctx, "Output", NK_TEXT_RIGHT);
+	// Go over all (real) output slots
+	for (int slot = 0; slot < lfr_signature_size; slot++) {
+		const char* name = lfr_get_instruction(inst)->output_signature[slot].name;
+		lfr_variant_t data = lfr_get_output_value(node_id, slot, graph, state);
+		if (!name) { continue; }
 
-		for (int slot = 0; slot < lfr_signature_size; slot++) {
-			const char* name = lfr_get_instruction(inst)->output_signature[slot].name;
-			lfr_variant_t data = lfr_get_output_value(node_id, slot, graph, state);
-			if (data.type != lfr_nil_type  && name) {
+		// Name (+ dummy buttons)
+		nk_layout_row_template_begin(ctx, 15);
+		nk_layout_row_template_push_dynamic(ctx);
+		if (app->mode == em_select_data_link_output) {
+			nk_layout_row_template_push_static(ctx, 40);
+		} else {
+			nk_layout_row_template_push_static(ctx, 20);
+			nk_layout_row_template_push_static(ctx, 20);
+		}
+		nk_layout_row_template_end(ctx);
+		nk_label(ctx, name, NK_TEXT_LEFT);
+		if (app->mode == em_select_data_link_output) {
+			// Link output slot on this node to input slot on active node
+			if (nk_button_label(ctx, "Link!")) {
+				// Link
+				lfr_link_data(
+					node_id, slot,
+					app->active_node_id, app->active_slot,
+					graph);
 
-				// Name (+ dummy buttons)
-				nk_layout_row_template_begin(ctx, 15);
-				nk_layout_row_template_push_dynamic(ctx);
-				if (app->mode == em_select_data_link_output) {
-					nk_layout_row_template_push_static(ctx, 40);
-				} else {
-					nk_layout_row_template_push_static(ctx, 20);
-					nk_layout_row_template_push_static(ctx, 20);
-				}
-				nk_layout_row_template_end(ctx);
-				nk_label(ctx, name, NK_TEXT_LEFT);
-				if (app->mode == em_select_data_link_output) {
-					// Link output slot on this node to input slot on active node
-					if (nk_button_label(ctx, "Link!")) {
-						// Link
-						lfr_link_data(
-							node_id, slot,
-							app->active_node_id, app->active_slot,
-							graph);
-
-						// Clear mode
-						app->mode = em_normal;
-					}
-				} else {
-					// TODO: Clear (x) links with buttons
-					nk_button_label(ctx, "x");
-					// Enter data linkin mode on button press
-					if (nk_button_label(ctx, "+")) {
-						app->mode = em_select_data_link_input;
-						app->active_node_id = node_id;
-						app->active_slot = slot;
-					}
-				}
-
-				// Get current y
-				// (Use when rendering slot connections)
-				struct nk_panel* panel = nk_window_get_panel(ctx);
-				app->output_ys[node_index][slot] = panel->at_y + 15/2;
-
-				// Value
-				nk_layout_row_dynamic(ctx, 0, 1);
-				char label_buf[16];
-				snprintf(label_buf, 16, "(%.3f)", data.float_value);
-				nk_label(ctx, label_buf, NK_TEXT_RIGHT);
+				// Clear mode
+				app->mode = em_normal;
+			}
+		} else {
+			nk_button_label(ctx, "x");
+			// Enter data linkin mode on button press
+			if (nk_button_label(ctx, "+")) {
+				app->mode = em_select_data_link_input;
+				app->active_node_id = node_id;
+				app->active_slot = slot;
 			}
 		}
-		nk_group_end(ctx);
+
+		// Get current y
+		// (Use when rendering slot connections)
+		struct nk_panel* panel = nk_window_get_panel(ctx);
+		app->output_ys[node_index][slot] = panel->at_y + 15/2;
+
+		// Value
+		nk_layout_row_dynamic(ctx, 0, 1);
+		char label_buf[16];
+		snprintf(label_buf, 16, "(%.3f)", data.float_value);
+		nk_label(ctx, label_buf, NK_TEXT_RIGHT);
 	}
+	nk_group_end(ctx);
 }
 
 
