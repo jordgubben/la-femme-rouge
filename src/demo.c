@@ -38,6 +38,7 @@ typedef enum editor_mode_ {
 	em_select_flow_prev,
 	em_select_flow_next,
 	em_select_data_link_input,
+	em_select_data_link_output,
 	no_em_modes // Not a mode :P
 } editor_mode_e;
 
@@ -417,7 +418,7 @@ void show_node_input_slots_group(
 	struct nk_context *ctx = app->ctx;
 
 	unsigned node_index = lfr_get_node_index(node_id, &graph->nodes);
-	lfr_instruction_e inst = graph->nodes.node[node_index].instruction;
+	lfr_node_t *node = &graph->nodes.node[node_index];
 
 	const nk_flags group_flags = 0;
 	if (nk_group_begin(ctx, "Input data", group_flags)) {
@@ -425,7 +426,8 @@ void show_node_input_slots_group(
 		nk_label(ctx, "Input", NK_TEXT_LEFT);
 
 		for (int slot = 0; slot < lfr_signature_size; slot++) {
-			const char* name = lfr_get_instruction(inst)->input_signature[slot].name;
+			const char* name =
+				lfr_get_instruction(node->instruction)->input_signature[slot].name;
 			if (!name) { continue; };
 
 			// Name (+ dummy buttons)
@@ -445,8 +447,15 @@ void show_node_input_slots_group(
 					// Clear editor mode
 					app->mode = em_normal;
 				}
+			} else if (node->input_data[slot].node.id == 0) {
+				// Enter data linking mode on button press
+				if (nk_button_label(ctx, "+")) {
+					app->mode = em_select_data_link_output;
+					app->active_node_id = node_id;
+					app->active_slot = slot;
+				}
 			} else {
-				nk_button_label(ctx, "+/x");
+				nk_button_label(ctx, "x");
 			}
 			nk_label(ctx, name, NK_TEXT_LEFT);
 
@@ -494,15 +503,35 @@ void show_node_output_slots_group(
 				// Name (+ dummy buttons)
 				nk_layout_row_template_begin(ctx, 15);
 				nk_layout_row_template_push_dynamic(ctx);
-				nk_layout_row_template_push_static(ctx, 20);
-				nk_layout_row_template_push_static(ctx, 20);
+				if (app->mode == em_select_data_link_output) {
+					nk_layout_row_template_push_static(ctx, 40);
+				} else {
+					nk_layout_row_template_push_static(ctx, 20);
+					nk_layout_row_template_push_static(ctx, 20);
+				}
 				nk_layout_row_template_end(ctx);
 				nk_label(ctx, name, NK_TEXT_LEFT);
-				nk_button_label(ctx, "x");
-				if (nk_button_label(ctx, "+")) {
-					app->mode = em_select_data_link_input;
-					app->active_node_id = node_id;
-					app->active_slot = slot;
+				if (app->mode == em_select_data_link_output) {
+					// Link output slot on this node to input slot on active node
+					if (nk_button_label(ctx, "Link!")) {
+						// Link
+						lfr_link_data(
+							node_id, slot,
+							app->active_node_id, app->active_slot,
+							graph);
+
+						// Clear mode
+						app->mode = em_normal;
+					}
+				} else {
+					// TODO: Clear (x) links with buttons
+					nk_button_label(ctx, "x");
+					// Enter data linkin mode on button press
+					if (nk_button_label(ctx, "+")) {
+						app->mode = em_select_data_link_input;
+						app->active_node_id = node_id;
+						app->active_slot = slot;
+					}
 				}
 
 				// Get current y
