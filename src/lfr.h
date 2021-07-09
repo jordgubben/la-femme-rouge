@@ -106,6 +106,7 @@ void lfr_unlink_nodes(lfr_node_id_t, lfr_node_id_t, lfr_graph_t*);
 
 // Data link CRUD
 void lfr_link_data(lfr_node_id_t, unsigned, lfr_node_id_t, unsigned, lfr_graph_t*);
+void lfr_unlink_output_data(lfr_node_id_t, unsigned, lfr_graph_t*);
 
 // Graph serialization
 void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph);
@@ -382,7 +383,6 @@ void lfr_unlink_nodes(lfr_node_id_t source_node, lfr_node_id_t target_node, lfr_
 }
 
 
-
 /**
 Link output data of one node with input data of another.
 
@@ -403,6 +403,30 @@ void lfr_link_data(lfr_node_id_t out_node, unsigned out_slot, lfr_node_id_t in_n
 	unsigned in_index = T_INDEX(*table, in_node);
 	table->node[in_index].input_data[in_slot].node = out_node;
 	table->node[in_index].input_data[in_slot].slot = out_slot;
+}
+
+
+/**
+Unlink given output node slot from all linked input slots.
+**/
+void lfr_unlink_output_data(lfr_node_id_t out_node, unsigned out_slot, lfr_graph_t *graph) {
+	assert(graph && T_HAS_ID(graph->nodes, out_node));
+	assert(out_slot < lfr_signature_size);
+
+	// Cycle through all nodes
+	for (int node_index = 0; node_index < graph->nodes.num_rows; node_index++) {
+		lfr_node_t *node = &graph->nodes.node[node_index];
+
+		// Cycle through all slots
+		for (int in_slot = 0; in_slot < lfr_signature_size; in_slot++) {
+			if (!T_SAME_ID(node->input_data[in_slot].node, out_node)) { continue; }
+			if (node->input_data[in_slot].slot != out_slot) { continue; }
+
+			// clear matching slot
+			node->input_data[in_slot].node.id = 0;
+			node->input_data[in_slot].slot = 0;
+		}
+	}
 }
 
 

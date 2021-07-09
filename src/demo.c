@@ -528,7 +528,11 @@ void show_node_output_slots_group(
 				app->mode = em_normal;
 			}
 		} else {
-			nk_button_label(ctx, "x");
+			// Clear (x) links with buttons
+			if (nk_button_label(ctx, "x")) {
+				lfr_unlink_output_data(node_id, slot, graph);
+			}
+
 			// Enter data linkin mode on button press
 			if (nk_button_label(ctx, "+")) {
 				app->mode = em_select_data_link_input;
