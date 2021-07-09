@@ -111,6 +111,7 @@ void lfr_link_data(lfr_node_id_t, unsigned, lfr_node_id_t, unsigned, lfr_graph_t
 void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph);
 int lfr_save_graph_to_file(const lfr_graph_t *, FILE * restrict stream);
 int lfr_save_links_to_file(const lfr_graph_t *, FILE * restrict stream);
+// TODO: save data links
 
 
 //// LFR Instruction definitions ////

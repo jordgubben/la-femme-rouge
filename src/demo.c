@@ -246,6 +246,8 @@ Show the window for an individual graph node.
 **/
 void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_graph_state_t *state, app_t *app) {
 	void show_node_main_flow_section(lfr_node_id_t, lfr_graph_t *, struct nk_context *);
+	void show_node_input_slots_group(lfr_node_id_t, const lfr_graph_state_t*, lfr_graph_t*, app_t*);
+	void show_node_output_slots_group(lfr_node_id_t, const lfr_graph_state_t*, lfr_graph_t*, app_t*);
 	assert(graph && state && app);
 	struct nk_context *ctx = app->ctx;
 
@@ -319,75 +321,11 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 
 		// Data (input and output)
 		{
-			char label[16];
 			nk_layout_row_dynamic(ctx, 150, 2);
-			const nk_flags group_flags = 0
-				;
 
-			// Input
-			if (nk_group_begin(ctx, "Input data", group_flags)) {
-				nk_layout_row_dynamic(ctx, 0, 1);
-				nk_label(ctx, "Input", NK_TEXT_LEFT);
+			show_node_input_slots_group(node_id, state, graph, app);
+			show_node_output_slots_group(node_id, state, graph, app);
 
-				for (int slot = 0; slot < lfr_signature_size; slot++) {
-					const char* name = lfr_get_instruction(inst)->input_signature[slot].name;
-					if (!name) { continue; };
-
-					// Name (+ dummy buttons)
-					nk_layout_row_template_begin(ctx, 15);
-					nk_layout_row_template_push_static(ctx, 40);
-					nk_layout_row_template_push_dynamic(ctx);
-					nk_layout_row_template_end(ctx);
-					nk_button_label(ctx, "+/x");
-					nk_label(ctx, name, NK_TEXT_LEFT);
-
-					// Get current y
-					// (Use when rendering slot connections)
-					struct nk_panel* panel = nk_window_get_panel(ctx);
-					app->input_ys[index][slot] = panel->at_y + 15/2;
-
-					// Curent input value (linked or fixed)
-					nk_layout_row_dynamic(ctx, 0, 1);
-					lfr_variant_t data = lfr_get_input_value(node_id, slot, graph, state);
-					snprintf(label, 16, "(%.3f)", data.float_value);
-					nk_label(ctx, label, NK_TEXT_RIGHT);
-				}
-				nk_group_end(ctx);
-			}
-
-			// Output
-			if (nk_group_begin(ctx, "Output data", group_flags)) {
-				nk_layout_row_dynamic(ctx, 0, 1);
-				nk_label(ctx, "Output", NK_TEXT_RIGHT);
-
-				for (int slot = 0; slot < lfr_signature_size; slot++) {
-					const char* name = lfr_get_instruction(inst)->output_signature[slot].name;
-					lfr_variant_t data = lfr_get_output_value(node_id, slot, graph, state);
-					if (data.type != lfr_nil_type  && name) {
-
-						// Name (+ dummy buttons)
-						nk_layout_row_template_begin(ctx, 15);
-						nk_layout_row_template_push_dynamic(ctx);
-						nk_layout_row_template_push_static(ctx, 20);
-						nk_layout_row_template_push_static(ctx, 20);
-						nk_layout_row_template_end(ctx);
-						nk_label(ctx, name, NK_TEXT_LEFT);
-						nk_button_label(ctx, "x");
-						nk_button_label(ctx, "+");
-
-						// Get current y
-						// (Use when rendering slot connections)
-						struct nk_panel* panel = nk_window_get_panel(ctx);
-						app->output_ys[index][slot] = panel->at_y + 15/2;
-
-						// Value
-						nk_layout_row_dynamic(ctx, 0, 1);
-						snprintf(label, 16, "(%.3f)", data.float_value);
-						nk_label(ctx, label, NK_TEXT_RIGHT);
-					}
-				}
-				nk_group_end(ctx);
-			}
 		}
 
 		// Scheduling
@@ -456,6 +394,105 @@ void show_node_main_flow_section(lfr_node_id_t node_id, lfr_graph_t *graph, stru
 			}
 		}
 
+		nk_group_end(ctx);
+	}
+}
+
+
+/*
+Show an UI group listing all *input* data slots of the given node.
+*/
+void show_node_input_slots_group(
+		lfr_node_id_t node_id,
+		const lfr_graph_state_t* state,
+		lfr_graph_t *graph,
+		app_t *app) {
+	assert(state && graph && app && app->ctx);
+	struct nk_context *ctx = app->ctx;
+
+	unsigned node_index = lfr_get_node_index(node_id, &graph->nodes);
+	lfr_instruction_e inst = graph->nodes.node[node_index].instruction;
+
+	const nk_flags group_flags = 0;
+	if (nk_group_begin(ctx, "Input data", group_flags)) {
+		nk_layout_row_dynamic(ctx, 0, 1);
+		nk_label(ctx, "Input", NK_TEXT_LEFT);
+
+		for (int slot = 0; slot < lfr_signature_size; slot++) {
+			const char* name = lfr_get_instruction(inst)->input_signature[slot].name;
+			if (!name) { continue; };
+
+			// Name (+ dummy buttons)
+			nk_layout_row_template_begin(ctx, 15);
+			nk_layout_row_template_push_static(ctx, 40);
+			nk_layout_row_template_push_dynamic(ctx);
+			nk_layout_row_template_end(ctx);
+			nk_button_label(ctx, "+/x");
+			nk_label(ctx, name, NK_TEXT_LEFT);
+
+			// Get current y
+			// (Use when rendering slot connections)
+			struct nk_panel* panel = nk_window_get_panel(ctx);
+			app->input_ys[node_index][slot] = panel->at_y + 15/2;
+
+			// Curent input value (linked or fixed)
+			nk_layout_row_dynamic(ctx, 0, 1);
+			lfr_variant_t data = lfr_get_input_value(node_id, slot, graph, state);
+			char label_buf[16];
+			snprintf(label_buf, 16, "(%.3f)", data.float_value);
+			nk_label(ctx, label_buf, NK_TEXT_RIGHT);
+		}
+		nk_group_end(ctx);
+	}
+}
+
+
+/*
+Show an UI group listing all *output* data slots of the given node.
+*/
+void show_node_output_slots_group(
+		lfr_node_id_t node_id,
+		const lfr_graph_state_t* state,
+		lfr_graph_t *graph,
+		app_t *app) {
+	assert(state && graph && app && app->ctx);
+	struct nk_context *ctx = app->ctx;
+
+	unsigned node_index = lfr_get_node_index(node_id, &graph->nodes);
+	lfr_instruction_e inst = graph->nodes.node[node_index].instruction;
+
+	const nk_flags group_flags = 0;
+	if (nk_group_begin(ctx, "Output data", group_flags)) {
+		nk_layout_row_dynamic(ctx, 0, 1);
+		nk_label(ctx, "Output", NK_TEXT_RIGHT);
+
+		for (int slot = 0; slot < lfr_signature_size; slot++) {
+			const char* name = lfr_get_instruction(inst)->output_signature[slot].name;
+			lfr_variant_t data = lfr_get_output_value(node_id, slot, graph, state);
+			if (data.type != lfr_nil_type  && name) {
+
+				// Name (+ dummy buttons)
+				nk_layout_row_template_begin(ctx, 15);
+				nk_layout_row_template_push_dynamic(ctx);
+				nk_layout_row_template_push_static(ctx, 20);
+				nk_layout_row_template_push_static(ctx, 20);
+				nk_layout_row_template_end(ctx);
+				nk_label(ctx, name, NK_TEXT_LEFT);
+				nk_button_label(ctx, "x");
+				nk_button_label(ctx, "+");
+
+				// Get current y
+				// (Use when rendering slot connections)
+				struct nk_panel* panel = nk_window_get_panel(ctx);
+				app->output_ys[node_index][slot] = panel->at_y + 15/2;
+
+				// Value
+				nk_layout_row_dynamic(ctx, 0, 1);
+				char label_buf[16];
+				snprintf(label_buf, 16, "(%.3f)", data.float_value);
+				nk_label(ctx, label_buf, NK_TEXT_RIGHT);
+			}
+		}
 		nk_group_end(ctx);
 	}
 }
