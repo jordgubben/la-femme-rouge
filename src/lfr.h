@@ -71,10 +71,10 @@ lfr_variant_t lfr_get_default_output_value(lfr_node_id_t, unsigned, const lfr_no
 void lfr_set_node_position(lfr_node_id_t, lfr_vec2_t, lfr_node_table_t *);
 void lfr_set_fixed_input_value(lfr_node_id_t, unsigned slot, lfr_variant_t, lfr_node_table_t *);
 void lfr_set_default_output_value(lfr_node_id_t, unsigned slot, lfr_variant_t, lfr_node_table_t *);
+void lfr_remove_node_from_table(lfr_node_id_t, lfr_node_table_t *);
 
 // Node serialization
 int lfr_save_node_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
-
 
 //// LFR Graph ////
 
@@ -95,7 +95,10 @@ typedef struct lfr_graph_ {
 
 void lfr_init_graph(lfr_graph_t *);
 void lfr_term_graph(lfr_graph_t *);
+
+// Node CRUD (for graph)
 lfr_node_id_t lfr_add_node(lfr_instruction_e, lfr_graph_t *);
+void lfr_remove_node(lfr_node_id_t, lfr_graph_t *);
 
 // Flow link CRUD
 void lfr_link_nodes(lfr_node_id_t, lfr_node_id_t, lfr_graph_t*);
@@ -103,6 +106,7 @@ bool lfr_has_link(lfr_node_id_t, lfr_node_id_t, const lfr_graph_t*);
 unsigned lfr_count_node_source_links(lfr_node_id_t, const lfr_graph_t*);
 unsigned lfr_count_node_target_links(lfr_node_id_t, const lfr_graph_t*);
 void lfr_unlink_nodes(lfr_node_id_t, lfr_node_id_t, lfr_graph_t*);
+void lfr_disconnect_node(lfr_node_id_t, lfr_graph_t *);
 
 // Data link CRUD
 void lfr_link_data(lfr_node_id_t, unsigned, lfr_node_id_t, unsigned, lfr_graph_t*);
@@ -310,6 +314,17 @@ lfr_node_id_t lfr_add_node(lfr_instruction_e inst, lfr_graph_t *graph) {
 
 
 /**
+Remove node from graph, including all links to and from it.
+**/
+void lfr_remove_node(lfr_node_id_t id, lfr_graph_t *graph) {
+	assert(graph && T_HAS_ID(graph->nodes, id));
+
+	lfr_disconnect_node(id, graph);
+	lfr_remove_node_from_table(id, &graph->nodes);
+}
+
+
+/**
 Link execution of one node to another.
 **/
 void lfr_link_nodes(lfr_node_id_t source_node, lfr_node_id_t target_node, lfr_graph_t *graph) {
@@ -380,6 +395,33 @@ void lfr_unlink_nodes(lfr_node_id_t source_node, lfr_node_id_t target_node, lfr_
 		// Remove (breaking order)
 		graph->flow_links[i] = graph->flow_links[--graph->num_flow_links];
 		return;
+	}
+}
+
+
+/**
+Completely disconnect given node from other nodes in the graph.
+**/
+void lfr_disconnect_node(lfr_node_id_t id, lfr_graph_t *graph) {
+	assert(graph && T_HAS_ID(graph->nodes, id));
+
+	// Disconnet from main flow
+	for (int i = 0; i < graph->num_flow_links; i++) {
+		lfr_flow_link_t *link = &graph->flow_links[i];
+		if (T_SAME_ID(link->source_node, id) || T_SAME_ID(link->target_node, id)) {
+			graph->flow_links[i--] = graph->flow_links[--graph->num_flow_links];
+		}
+	}
+
+	// Disconnect data links
+	for (int node_index = 0; node_index < graph->nodes.num_rows; node_index++) {
+		lfr_node_t *node = &graph->nodes.node[node_index];
+
+		// Clear all slots refering to the given node
+		for (int slot = 0; slot < lfr_signature_size; slot++) {
+			if (!T_SAME_ID(node->input_data[slot].node, id)) { continue; }
+			node->input_data[slot].node = (lfr_node_id_t) { 0 };
+		}
 	}
 }
 
@@ -625,6 +667,24 @@ void lfr_set_default_output_value(lfr_node_id_t id, unsigned slot, lfr_variant_t
 
 	unsigned index = T_INDEX(*table, id);
 	table->node[index].output_data[slot] = value;
+}
+
+
+/**
+Remove node table row.
+**/
+void lfr_remove_node_from_table(lfr_node_id_t  id, lfr_node_table_t *table) {
+	assert(table && T_HAS_ID(*table, id));
+
+	// Fast (unordered) delete by moviong last row
+	unsigned index = T_INDEX(*table, id);
+	unsigned moved = --table->num_rows;
+	table->dense_id[index] =  table->dense_id[moved];
+	table->node[index] =  table->node[moved];
+	table->position[index] =  table->position[moved];
+
+	// Finally update location of moved row
+	table->sparse_id[table->dense_id[index].id] = index;
 }
 
 

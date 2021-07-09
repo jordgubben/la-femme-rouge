@@ -100,6 +100,9 @@ int main( int argc, char** argv) {
 		// Links
 		lfr_link_nodes(n1, n2, &graph);
 		lfr_link_nodes(n1, n3, &graph);
+
+		// Remove something (see that it works)
+		lfr_remove_node(n2, &graph);
 	}
 
 	// Run graph in gui
