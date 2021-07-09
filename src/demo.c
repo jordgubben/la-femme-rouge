@@ -291,31 +291,30 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 			nk_tree_pop(ctx);
 		}
 
-		// New flow link section
-		switch(app->mode) {
-			case em_normal: {/* Do nothing */} break;
+		// Show "Link with this" button?
+		if (app->mode == em_select_flow_prev || app->mode == em_select_flow_next) {
+			// Define involved nodes
+			lfr_node_id_t source_id, target_id;
+			if (app->mode == em_select_flow_prev) {
+				source_id = node_id;
+				target_id = app->active_node_id;
+			} else { // app->mode == em_select_flow_next
+				source_id = app->active_node_id;
+				target_id = node_id;
+			}
 
-			case em_select_flow_prev: {
-				if (lfr_has_link(node_id, app->active_node_id, graph)) { break; }
+			// Show button only if nodes are not alrweady linked
+			if (!lfr_has_link(source_id, target_id, graph)) {
 				nk_layout_row_dynamic(ctx, 0, 1);
 				if (nk_button_label(ctx, "Link with this!")){
-					lfr_link_nodes(node_id, app->active_node_id, graph);
+					// Link
+					lfr_link_nodes(source_id, target_id, graph);
+
+					// Clear
 					app->mode = em_normal;
 					app->active_node_id = (lfr_node_id_t){ 0 };
 				}
-			}break;
-
-			case em_select_flow_next: {
-				if (lfr_has_link(app->active_node_id, node_id, graph)) { break; }
-				nk_layout_row_dynamic(ctx, 0, 1);
-				if (nk_button_label(ctx, "Link with this!")){
-					lfr_link_nodes(app->active_node_id, node_id, graph);
-					app->mode = em_normal;
-					app->active_node_id = (lfr_node_id_t){ 0 };
-				}
-			}break;
-
-			case no_em_modes: assert(0);  break; // Not a mode :P
+			}
 		}
 
 		// Data (input and output)
