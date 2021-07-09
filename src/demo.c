@@ -597,7 +597,7 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 			const lfr_node_t *node = &graph->nodes.node[node_index];
 			const lfr_vec2_t node_win_pos = lfr_get_node_position(in_node_id, &graph->nodes);
 
-			// For every linked input slot
+			// For every linked pair of slots
 			for (int slot = 0; slot < lfr_signature_size; slot++) {
 				lfr_node_id_t out_node_id = node->input_data[slot].node;
 				if (!out_node_id.id) { continue; }
@@ -614,10 +614,12 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 
 				// Draw curve
 				const float ex = 100;
+				int g = 150 + (out_node_id.id * 11) % 100;
+				int b = 100 + (in_node_id.id * 11) % 100;
 				nk_stroke_curve(canvas,
 					out_pos.x, out_pos.y, out_pos.x + ex, out_pos.y,
 					in_pos.x - ex, in_pos.y, in_pos.x, in_pos.y,
-					2.f, nk_rgb(200,200,100));
+					2.f, nk_rgb(50, g, b));
 			}
 		}
 
