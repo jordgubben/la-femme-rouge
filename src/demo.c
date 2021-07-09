@@ -51,6 +51,9 @@ typedef struct app_ {
 	lfr_node_id_t active_node_id;
 	unsigned active_slot;
 
+	// Removing nodes
+	lfr_node_id_t removal_of_node_requested;
+
 	// Layout
 	float input_ys[lfr_node_table_max_rows][lfr_signature_size];
 	float output_ys[lfr_node_table_max_rows][lfr_signature_size];
@@ -100,9 +103,6 @@ int main( int argc, char** argv) {
 		// Links
 		lfr_link_nodes(n1, n2, &graph);
 		lfr_link_nodes(n1, n3, &graph);
-
-		// Remove something (see that it works)
-		lfr_remove_node(n2, &graph);
 	}
 
 	// Run graph in gui
@@ -289,6 +289,13 @@ void show_graph(app_t *app, lfr_graph_t *graph, lfr_graph_state_t* state) {
 	// Show node flow et.al.
 	show_editor_bg_window(graph, app);
 
+	// Remove node that has recently had it's window closed
+	// (Avoid pain by waitning until after cycling through nodes before removing one)
+	if (app->removal_of_node_requested.id) {
+		lfr_remove_node(app->removal_of_node_requested, graph);
+		app->removal_of_node_requested = (lfr_node_id_t) {0};
+	}
+
 	// Return editor to 'normal' mode by clicking on background
 	if (nk_window_is_active(ctx, bg_window_title) && app->mode != em_normal) {
 		app->mode = em_normal;
@@ -377,17 +384,16 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 		// Data (input and output)
 		{
 			nk_layout_row_dynamic(ctx, 150, 2);
-
 			show_node_input_slots_group(node_id, state, graph, app);
 			show_node_output_slots_group(node_id, state, graph, app);
-
 		}
 
-		// Scheduling
+		// Misc. management
 		nk_layout_row_dynamic(ctx, 0, 2);
-		nk_label(ctx, "Example label", NK_TEXT_LEFT);
+		if (nk_button_label(ctx, "Remove me")) {
+			app->removal_of_node_requested = node_id;
+		}
 		if (nk_button_label(ctx, "Schedule me")) {
-			printf("Scheduling node [#%u|%u]].\n", node_id.id, index);
 			lfr_schedule(node_id, graph, state);
 		}
 
