@@ -68,7 +68,7 @@ void show_example_window(struct nk_context *);
 void run_gui(lfr_graph_t *, lfr_graph_state_t *);
 void show_graph(app_t * app, lfr_graph_t *, lfr_graph_state_t *);
 void show_individual_node_window(lfr_node_id_t, lfr_graph_t *, lfr_graph_state_t *, app_t *);
-void show_node_flow_bg_window(const lfr_graph_t *, const app_t *);
+void show_node_flow_bg_window(lfr_graph_t *, const app_t *);
 void show_state_queue(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
 
 int main( int argc, char** argv) {
@@ -562,7 +562,7 @@ void show_node_output_slots_group(
 /**
 Show background window with flow lines.
 **/
-void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
+void show_node_flow_bg_window(lfr_graph_t *graph, const app_t *app) {
 	assert(graph && app);
 	struct nk_context *ctx = app->ctx;
 
@@ -654,6 +654,23 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 			nk_stroke_line(canvas, source_p.x, source_p.y, mouse_x, mouse_y, 5.f, nk_rgb(150,200,100));
 		}
 
+		// Create new nodes (Contextual menu)
+		if (nk_contextual_begin(ctx, 0, nk_vec2(100,200), nk_window_get_bounds(ctx))) {
+			nk_layout_row_dynamic(ctx, 25, 1);
+			for (int i = 0; i < lfr_no_core_instructions; i++) {
+				const char* name = lfr_get_instruction_name(i);
+				if ( nk_contextual_item_label(ctx, name, NK_TEXT_LEFT)) {
+					// Create node
+					lfr_node_id_t id = lfr_add_node(i, graph);
+
+					// Position at cursor
+					struct nk_vec2 mouse_pos = ctx->input.mouse.pos;
+					lfr_vec2_t node_pos = {mouse_pos.x, mouse_pos.y};
+					lfr_set_node_position(id, node_pos, &graph->nodes);
+				}
+			}
+			nk_contextual_end(ctx);
+		}
 	}
 	nk_end(ctx);
 }
