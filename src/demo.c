@@ -417,62 +417,63 @@ void show_node_input_slots_group(
 	assert(state && graph && app && app->ctx);
 	struct nk_context *ctx = app->ctx;
 
+	// Start group - Early out if it is hidden
+	const nk_flags group_flags = 0;
+	if (!nk_group_begin(ctx, "Input data", group_flags)) { return; }
+	nk_layout_row_dynamic(ctx, 0, 1);
+	nk_label(ctx, "Input", NK_TEXT_LEFT);
+
+	// Get node info
 	unsigned node_index = lfr_get_node_index(node_id, &graph->nodes);
 	lfr_node_t *node = &graph->nodes.node[node_index];
 
-	const nk_flags group_flags = 0;
-	if (nk_group_begin(ctx, "Input data", group_flags)) {
-		nk_layout_row_dynamic(ctx, 0, 1);
-		nk_label(ctx, "Input", NK_TEXT_LEFT);
+	// Go over all (real) input slots
+	for (int slot = 0; slot < lfr_signature_size; slot++) {
+		const char* name = lfr_get_instruction(node->instruction)->input_signature[slot].name;
+		if (!name) { continue; };
 
-		for (int slot = 0; slot < lfr_signature_size; slot++) {
-			const char* name =
-				lfr_get_instruction(node->instruction)->input_signature[slot].name;
-			if (!name) { continue; };
+		// Name (+ dummy buttons)
+		nk_layout_row_template_begin(ctx, 15);
+		nk_layout_row_template_push_static(ctx, 40);
+		nk_layout_row_template_push_dynamic(ctx);
+		nk_layout_row_template_end(ctx);
+		if (app->mode == em_select_data_link_input) {
+			// Link output slot on active node to input slot on this node
+			if (nk_button_label(ctx, "Link!")) {
+				// Link
+				lfr_link_data(
+					app->active_node_id, app->active_slot,
+					node_id, slot,
+					graph);
 
-			// Name (+ dummy buttons)
-			nk_layout_row_template_begin(ctx, 15);
-			nk_layout_row_template_push_static(ctx, 40);
-			nk_layout_row_template_push_dynamic(ctx);
-			nk_layout_row_template_end(ctx);
-			if (app->mode == em_select_data_link_input) {
-				// Link output slot on active node to input slot on this node
-				if (nk_button_label(ctx, "Link!")) {
-					// Link
-					lfr_link_data(
-						app->active_node_id, app->active_slot,
-						node_id, slot,
-						graph);
-
-					// Clear editor mode
-					app->mode = em_normal;
-				}
-			} else if (node->input_data[slot].node.id == 0) {
-				// Enter data linking mode on button press
-				if (nk_button_label(ctx, "+")) {
-					app->mode = em_select_data_link_output;
-					app->active_node_id = node_id;
-					app->active_slot = slot;
-				}
-			} else {
-				nk_button_label(ctx, "x");
+				// Clear editor mode
+				app->mode = em_normal;
 			}
-			nk_label(ctx, name, NK_TEXT_LEFT);
-
-			// Get current y
-			// (Use when rendering slot connections)
-			struct nk_panel* panel = nk_window_get_panel(ctx);
-			app->input_ys[node_index][slot] = panel->at_y + 15/2;
-
-			// Curent input value (linked or fixed)
-			nk_layout_row_dynamic(ctx, 0, 1);
-			lfr_variant_t data = lfr_get_input_value(node_id, slot, graph, state);
-			char label_buf[16];
-			snprintf(label_buf, 16, "(%.3f)", data.float_value);
-			nk_label(ctx, label_buf, NK_TEXT_RIGHT);
+		} else if (node->input_data[slot].node.id == 0) {
+			// Enter data linking mode on button press
+			if (nk_button_label(ctx, "+")) {
+				app->mode = em_select_data_link_output;
+				app->active_node_id = node_id;
+				app->active_slot = slot;
+			}
+		} else {
+			nk_button_label(ctx, "x");
 		}
-		nk_group_end(ctx);
+		nk_label(ctx, name, NK_TEXT_LEFT);
+
+		// Get current y
+		// (Use when rendering slot connections)
+		struct nk_panel* panel = nk_window_get_panel(ctx);
+		app->input_ys[node_index][slot] = panel->at_y + 15/2;
+
+		// Curent input value (linked or fixed)
+		nk_layout_row_dynamic(ctx, 0, 1);
+		lfr_variant_t data = lfr_get_input_value(node_id, slot, graph, state);
+		char label_buf[16];
+		snprintf(label_buf, 16, "(%.3f)", data.float_value);
+		nk_label(ctx, label_buf, NK_TEXT_RIGHT);
 	}
+	nk_group_end(ctx);
 }
 
 
