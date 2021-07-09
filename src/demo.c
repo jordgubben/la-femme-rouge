@@ -457,7 +457,10 @@ void show_node_input_slots_group(
 				app->active_slot = slot;
 			}
 		} else {
-			nk_button_label(ctx, "x");
+			// Clear (x) link with button
+			if (nk_button_label(ctx, "x")) {
+				lfr_unlink_input_data(node_id, slot, graph);
+			}
 		}
 		nk_label(ctx, name, NK_TEXT_LEFT);
 

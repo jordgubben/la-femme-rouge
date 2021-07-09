@@ -106,6 +106,7 @@ void lfr_unlink_nodes(lfr_node_id_t, lfr_node_id_t, lfr_graph_t*);
 
 // Data link CRUD
 void lfr_link_data(lfr_node_id_t, unsigned, lfr_node_id_t, unsigned, lfr_graph_t*);
+void lfr_unlink_input_data(lfr_node_id_t, unsigned, lfr_graph_t*);
 void lfr_unlink_output_data(lfr_node_id_t, unsigned, lfr_graph_t*);
 
 // Graph serialization
@@ -403,6 +404,20 @@ void lfr_link_data(lfr_node_id_t out_node, unsigned out_slot, lfr_node_id_t in_n
 	unsigned in_index = T_INDEX(*table, in_node);
 	table->node[in_index].input_data[in_slot].node = out_node;
 	table->node[in_index].input_data[in_slot].slot = out_slot;
+}
+
+
+/**
+Unlink given input node slot from any linked output slots.
+**/
+void lfr_unlink_input_data(lfr_node_id_t in_node, unsigned in_slot, lfr_graph_t *graph) {
+	assert(graph && T_HAS_ID(graph->nodes, in_node));
+	assert(in_slot < lfr_signature_size);
+
+	// Clear node
+	lfr_node_t *node = &graph->nodes.node[T_INDEX(graph->nodes, in_node)];
+	node->input_data[in_slot].node = (lfr_node_id_t) {0};
+	node->input_data[in_slot].slot = 0;
 }
 
 
