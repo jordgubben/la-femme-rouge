@@ -586,9 +586,11 @@ void show_node_flow_bg_window(const lfr_graph_t *graph, const app_t *app) {
 
 			// Draw curve
 			const float ex = 75;
+			int r = 150 + (link->source_node.id * 11) % 100;
+			int g = 100 + (link->target_node.id * 11) % 100;
 			nk_stroke_curve(canvas,
 				p1.x, p1.y, p1.x + ex, p1.y, p2.x - ex, p2.y, p2.x, p2.y,
-				2.f, nk_rgb(100,100,100));
+				2.f, nk_rgb(r, g, 50));
 		}
 
 		// Data lines
