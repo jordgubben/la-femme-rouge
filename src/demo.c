@@ -32,6 +32,8 @@ LFR Scripting demo.
 #define CHECK_GL(hint) check_gl(hint, __LINE__)
 #define CHECK_GL_OR(hint, bail) if(!check_gl(hint, __LINE__)) { bail; }
 
+#define SHOW_EXAMPLE_WINDOW 0
+
 const char *bg_window_title = "Graph editor BG";
 
 typedef enum editor_mode_ {
@@ -162,7 +164,10 @@ void run_gui(lfr_graph_t* graph, lfr_graph_state_t *state) {
 		// Prep UI
 		nk_glfw3_new_frame(&glfw);
 
+#if SHOW_EXAMPLE_WINDOW
 		show_example_window(ctx);
+#endif // SHOW_EXAMPLE_WINDOW
+
 		show_graph(&app, graph, state);
 		show_state_queue(ctx, graph, state);
 
