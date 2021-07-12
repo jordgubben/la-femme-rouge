@@ -59,7 +59,7 @@ typedef struct app_ {
 
 	// Layout
 	float input_ys[lfr_node_table_max_rows][lfr_signature_size];
-	float output_ys[lfr_node_table_max_rows][lfr_signature_size];
+	lfr_vec2_t output_positions[lfr_node_table_max_rows][lfr_signature_size];
 } app_t;
 
 // GL basics
@@ -614,7 +614,8 @@ void show_node_output_slots_group(
 		// Get current y
 		// (Use when rendering slot connections)
 		struct nk_panel* panel = nk_window_get_panel(ctx);
-		app->output_ys[node_index][slot] = panel->at_y + 15/2;
+		app->output_positions[node_index][slot] =
+			(lfr_vec2_t) {panel->bounds.x + panel->bounds.w + 30, panel->at_y + 15/2};
 
 		// Value
 		nk_layout_row_dynamic(ctx, 0, 1);
@@ -698,11 +699,9 @@ void draw_data_link_lines(const app_t *app, const lfr_graph_t *graph, struct nk_
 			lfr_vec2_t in_pos = {node_win_pos.x, app->input_ys[node_index][slot]};
 
 			// Output slot position (on other node)
-			lfr_vec2_t out_pos = lfr_get_node_position(out_node_id, &graph->nodes);
-			out_pos.x += 300;
 			unsigned output_index = lfr_get_node_index(out_node_id, &graph->nodes);
 			unsigned output_slot = node->input_data[slot].slot;
-			out_pos.y = app->output_ys[output_index][output_slot];
+			lfr_vec2_t out_pos = app->output_positions[output_index][output_slot];
 
 			// Draw curve
 			const float ex = 100;
