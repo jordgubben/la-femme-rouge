@@ -32,6 +32,7 @@ typedef enum lfr_instruction_ {
 	lfr_print_own_id,
 	lfr_randomize_number,
 	lfr_add,
+	lfr_sub,
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
@@ -820,8 +821,28 @@ void lfr_add_proc(lfr_node_id_t node_id,
 	output[0] = result;
 }
 
+
+/**
+Subtract - Get the difference between two floats.
+**/
+void lfr_sub_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		const lfr_graph_t* graph) {
+
+	// Subtract the second float from the first
+	if (input[0].type == lfr_float_type && input[1].type == lfr_float_type) {
+		output[0] = lfr_float(input[0].float_value - input[1].float_value);
+	} else {
+		assert(0 && "Not two floats");
+	}
+}
+
+
 /**
 Look up table of all core instructions.
+
+Note:
+ Order is expected to match lfr_instruction_e above.
 **/
 static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructions] = {
 	{"print_own_id", lfr_print_own_id_proc, {}, {}},
@@ -832,6 +853,10 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 	{"add", lfr_add_proc,
 		{{"A", {lfr_float_type, .float_value = 0}}, {"B", {lfr_float_type, .float_value = 0}}},
 		{{"SUM", {lfr_float_type, .float_value = 0}}}
+	},
+	{"sub", lfr_sub_proc,
+		{{"A", {lfr_float_type, .float_value = 0}}, {"B", {lfr_float_type, .float_value = 0}}},
+		{{"DIFF", {lfr_float_type, .float_value = 0}}}
 	},
 };
 
