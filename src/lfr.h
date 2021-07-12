@@ -33,6 +33,7 @@ typedef enum lfr_instruction_ {
 	lfr_randomize_number,
 	lfr_add,
 	lfr_sub,
+	lfr_mul,
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
@@ -839,6 +840,26 @@ void lfr_sub_proc(lfr_node_id_t node_id,
 
 
 /**
+Multiply - Get the procuct of two (or more) floats
+**/
+void lfr_mul_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		const lfr_graph_t* graph) {
+
+	// Multiply all floats
+	lfr_variant_t result = {lfr_float_type, .float_value = 1};
+	for (int i = 0; i < lfr_signature_size; i++) {
+		if (input[i].type == lfr_float_type) {
+			result.float_value *= input[i].float_value;
+		}
+	}
+
+	// Assign result
+	output[0] = result;
+}
+
+
+/**
 Look up table of all core instructions.
 
 Note:
@@ -858,6 +879,11 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 		{{"A", {lfr_float_type, .float_value = 0}}, {"B", {lfr_float_type, .float_value = 0}}},
 		{{"DIFF", {lfr_float_type, .float_value = 0}}}
 	},
+	{"mul", lfr_mul_proc,
+		{{"A", {lfr_float_type, .float_value = 0}}, {"B", {lfr_float_type, .float_value = 0}}},
+		{{"PROD", {lfr_float_type, .float_value = 0}}}
+	},
+
 };
 
 
