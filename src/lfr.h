@@ -34,6 +34,7 @@ typedef enum lfr_instruction_ {
 	lfr_add,
 	lfr_sub,
 	lfr_mul,
+	lfr_print_value,
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
@@ -860,6 +861,22 @@ void lfr_mul_proc(lfr_node_id_t node_id,
 
 
 /**
+Print value to stdout.
+**/
+void lfr_print_value_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		const lfr_graph_t* graph) {
+
+	switch(input[0].type) {
+	case lfr_nil_type: { printf("nil\n");} break;
+	case lfr_float_type: { printf("%f\n", input[0].float_value); } break;
+	case lfr_vec2_type: { printf("(%f,%f)\n", input[0].vec2_value.x, input[0].vec2_value.y); } break;
+	case lfr_no_core_types: { assert(0 && "Not a type"); } break;
+	}
+}
+
+
+/**
 Look up table of all core instructions.
 
 Note:
@@ -883,7 +900,10 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 		{{"A", {lfr_float_type, .float_value = 0}}, {"B", {lfr_float_type, .float_value = 0}}},
 		{{"PROD", {lfr_float_type, .float_value = 0}}}
 	},
-
+	{"print_value", lfr_print_value_proc,
+		{{"VAL", {lfr_float_type, .float_value = 0}}},
+		{}
+	},
 };
 
 
