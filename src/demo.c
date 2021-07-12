@@ -6,6 +6,7 @@ LFR Scripting demo.
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>
+#include <float.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -523,12 +524,19 @@ void show_node_input_slots_group(
 		struct nk_panel* panel = nk_window_get_panel(ctx);
 		app->input_ys[node_index][slot] = panel->at_y + 15/2;
 
-		// Curent input value (linked or fixed)
+		// Current input value (linked or fixed)
 		nk_layout_row_dynamic(ctx, 0, 1);
-		lfr_variant_t data = lfr_get_input_value(node_id, slot, graph, state);
-		char label_buf[16];
-		snprintf(label_buf, 16, "(%.3f)", data.float_value);
-		nk_label(ctx, label_buf, NK_TEXT_RIGHT);
+		const lfr_variant_t data = lfr_get_input_value(node_id, slot, graph, state);
+		if (data.type == lfr_float_type) {
+			// Set a new value if it's changed by the UI (breaks link)
+			float new_value = nk_propertyf(ctx, "=", FLT_MIN, data.float_value, FLT_MAX, 1, 1);
+			if (data.float_value != new_value) {
+				lfr_set_fixed_input_value(node_id, slot, lfr_float(new_value), &graph->nodes);
+			}
+		} else {
+			// TODO: Support other types
+			nk_label(ctx, "???", NK_TEXT_RIGHT);
+		}
 	}
 	nk_group_end(ctx);
 }

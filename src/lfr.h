@@ -24,6 +24,7 @@ typedef struct lfr_variant_ {
 	};
 } lfr_variant_t;
 
+lfr_variant_t lfr_float(float v) { return (lfr_variant_t) {lfr_float_type, .float_value = v}; }
 
 //// LFR Instructions ////
 
