@@ -77,6 +77,7 @@ void lfr_remove_node_from_table(lfr_node_id_t, lfr_node_table_t *);
 // Node serialization
 int lfr_save_nodes_in_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
 int lfr_save_data_links_in_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
+int lfr_save_fixed_values_in_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
 
 //// LFR Graph ////
 
@@ -520,6 +521,12 @@ void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
 			sscanf(line_buf, "data #%u:%u -> #%u:%u",
 				&output_node.id, &output_slot, &input_node.id, &input_slot);
 			lfr_link_data(output_node, output_slot, input_node, input_slot, graph);
+		} else if (strcmp(type_buf, "value") == 0) {
+			lfr_node_id_t input_node;
+			unsigned input_slot;
+			float float_value;
+			sscanf(line_buf, "value #%u:%u = %f", &input_node.id, &input_slot, &float_value);
+			lfr_set_fixed_input_value(input_node, input_slot, lfr_float(float_value), &graph->nodes);
 		} else if (strcmp(type_buf, "link") == 0) {
 			// Parse and create link
 			lfr_node_id_t source, target;
@@ -540,6 +547,7 @@ int lfr_save_graph_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
 	// Dump things
 	char_count += lfr_save_nodes_in_table_to_file(&graph->nodes, stream);
 	char_count += lfr_save_data_links_in_table_to_file(&graph->nodes, stream);
+	char_count += lfr_save_fixed_values_in_table_to_file(&graph->nodes, stream);
 	char_count += lfr_save_flow_links_to_file(graph, stream);
 
 	return char_count;
@@ -739,6 +747,30 @@ int lfr_save_data_links_in_table_to_file(const lfr_node_table_t* table, FILE * r
 				"#%u:%u -> #%u:%u",
 				node->input_data[slot].node.id, node->input_data[slot].slot,
 				id.id, slot);
+			char_count += fprintf(stream, "\n");
+		}
+	}
+
+	return char_count;
+}
+
+
+/**
+Print fixed data values onto file stream in a parser friendly (tab separated) format.
+**/
+int lfr_save_fixed_values_in_table_to_file(const lfr_node_table_t* table, FILE * restrict stream) {
+	int char_count = 0;
+
+	T_FOR_ROWS(index, *table) {
+		lfr_node_id_t id = T_ID(*table, index);
+		const lfr_node_t *node = &table->node[index];
+		for (int slot = 0; slot < lfr_signature_size; slot++) {
+			if (node->input_data[slot].node.id != 0) { continue; }
+			if (node->input_data[slot].fixed_value.type == lfr_nil_type) { continue; }
+
+			char_count += fprintf(stream, "value\t");
+			char_count += fprintf(stream, "#%u:%u =\t", id.id, slot);
+			char_count += fprintf(stream, "%f", node->input_data[slot].fixed_value.float_value);
 			char_count += fprintf(stream, "\n");
 		}
 	}
