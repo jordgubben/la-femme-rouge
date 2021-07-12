@@ -35,6 +35,7 @@ LFR Scripting demo.
 #define SHOW_EXAMPLE_WINDOW 0
 
 const char *bg_window_title = "Graph editor BG";
+const unsigned node_window_w = 210, node_window_h = 330;
 
 typedef enum editor_mode_ {
 	em_normal,
@@ -329,7 +330,7 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 
 	// Initial window rect
 	lfr_vec2_t pos = lfr_get_node_position(node_id, &graph->nodes);
-	struct nk_rect rect =  nk_rect(pos.x, pos.y, 300, 200);
+	struct nk_rect rect =  nk_rect(pos.x, pos.y, node_window_w, node_window_h);
 
 	// Show the window
 	bool highlight = (state->num_schedueled_nodes && node_id.id ==  state->schedueled_nodes[0].id);
@@ -661,7 +662,7 @@ void draw_flow_link_lines(const app_t *app, const lfr_graph_t *graph, struct nk_
 		const lfr_flow_link_t *link = &graph->flow_links[i];
 		// Source end
 		lfr_vec2_t p1 = lfr_get_node_position(link->source_node, &graph->nodes);
-		p1.x += 300;
+		p1.x += node_window_w;
 		p1.y += 20;
 
 		// Target end
@@ -721,7 +722,7 @@ Draw selection curve (if in one of the appropriate modes).
 void draw_link_selection_curve(const app_t *app, const lfr_graph_t *graph, struct nk_command_buffer *canvas) {
 	assert(app && graph && canvas);
 
-	// Select previous node in flow
+	// Select source node in flow
 	if (app->mode == em_select_flow_prev && app->active_node_id.id) {
 		// Connected end
 		lfr_vec2_t target_p = lfr_get_node_position(app->active_node_id, &graph->nodes);
@@ -735,11 +736,11 @@ void draw_link_selection_curve(const app_t *app, const lfr_graph_t *graph, struc
 		nk_stroke_line(canvas, mouse_x, mouse_y, target_p.x, target_p.y, 5.f, nk_rgb(200,150,100));
 	}
 
-	// Select next node in flow
+	// Select target node in flow
 	if (app->mode == em_select_flow_next && app->active_node_id.id) {
 		// Connected end
 		lfr_vec2_t source_p = lfr_get_node_position(app->active_node_id, &graph->nodes);
-		source_p.x += 300;
+		source_p.x += node_window_w;
 		source_p.y += 20;
 
 		// Mouse end
