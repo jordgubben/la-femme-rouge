@@ -564,7 +564,7 @@ int lfr_save_flow_links_to_file(const lfr_graph_t *graph, FILE * restrict stream
 	for (int i = 0; i < graph->num_flow_links; i++) {
 		const lfr_flow_link_t *link = &graph->flow_links[i];
 		char_count += fprintf(stream, "link\t");
-		char_count += fprintf(stream, "#%u -> #%u\t", link->source_node.id, link->target_node.id);
+		char_count += fprintf(stream, "#%u -> #%u", link->source_node.id, link->target_node.id);
 		char_count += fprintf(stream, "\n");
 	}
 
@@ -721,7 +721,7 @@ int lfr_save_nodes_in_table_to_file(const lfr_node_table_t *table, FILE * restri
 
 		// Position
 		lfr_vec2_t pos = lfr_get_node_position(node_id, table);
-		char_count += fprintf(stream, "(%f, %f)\t", pos.x, pos.y);
+		char_count += fprintf(stream, "(%f, %f)", pos.x, pos.y);
 
 		char_count += fprintf(stream, "\n");
 	}
