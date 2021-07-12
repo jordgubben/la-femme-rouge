@@ -535,7 +535,7 @@ void show_node_input_slots_group(
 		const lfr_variant_t data = lfr_get_input_value(node_id, slot, graph, state);
 		if (data.type == lfr_float_type) {
 			// Set a new value if it's changed by the UI (breaks link)
-			float new_value = nk_propertyf(ctx, "=", FLT_MIN, data.float_value, FLT_MAX, 1, 1);
+			float new_value = nk_propertyf(ctx, "#=", FLT_MIN, data.float_value, FLT_MAX, 1, 1);
 			if (data.float_value != new_value) {
 				lfr_set_fixed_input_value(node_id, slot, lfr_float(new_value), &graph->nodes);
 			}
