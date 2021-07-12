@@ -75,7 +75,8 @@ void lfr_set_default_output_value(lfr_node_id_t, unsigned slot, lfr_variant_t, l
 void lfr_remove_node_from_table(lfr_node_id_t, lfr_node_table_t *);
 
 // Node serialization
-int lfr_save_node_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
+int lfr_save_nodes_in_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
+int lfr_save_data_links_in_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
 
 //// LFR Graph ////
 
@@ -117,8 +118,7 @@ void lfr_unlink_output_data(lfr_node_id_t, unsigned, lfr_graph_t*);
 // Graph serialization
 void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph);
 int lfr_save_graph_to_file(const lfr_graph_t *, FILE * restrict stream);
-int lfr_save_links_to_file(const lfr_graph_t *, FILE * restrict stream);
-// TODO: save data links
+int lfr_save_flow_links_to_file(const lfr_graph_t *, FILE * restrict stream);
 
 
 //// LFR Instruction definitions ////
@@ -514,12 +514,17 @@ void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
 			assert(T_SAME_ID(new_id, expected_id));
 			lfr_set_node_position(new_id, pos, &graph->nodes);
 
+		} else if (strcmp(type_buf, "data") == 0) {
+			lfr_node_id_t output_node, input_node;
+			unsigned output_slot, input_slot;
+			sscanf(line_buf, "data #%u:%u -> #%u:%u",
+				&output_node.id, &output_slot, &input_node.id, &input_slot);
+			lfr_link_data(output_node, output_slot, input_node, input_slot, graph);
 		} else if (strcmp(type_buf, "link") == 0) {
 			// Parse and create link
 			lfr_node_id_t source, target;
 			sscanf(line_buf, "link #%u -> #%u", &source.id, &target.id);
 			lfr_link_nodes(source, target, graph);
-
 		} else {
 			fprintf(stderr, "Unknown type '%s'\n", type_buf);
 		}
@@ -533,8 +538,9 @@ int lfr_save_graph_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
 	int char_count = 0;
 
 	// Dump things
-	char_count += lfr_save_node_table_to_file(&graph->nodes, stream);
-	char_count += lfr_save_links_to_file(graph, stream);
+	char_count += lfr_save_nodes_in_table_to_file(&graph->nodes, stream);
+	char_count += lfr_save_data_links_in_table_to_file(&graph->nodes, stream);
+	char_count += lfr_save_flow_links_to_file(graph, stream);
 
 	return char_count;
 }
@@ -543,7 +549,7 @@ int lfr_save_graph_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
 /**
 Dump main flow links in a parsable (tab-separated) format.
 **/
-int lfr_save_links_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
+int lfr_save_flow_links_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
 	int char_count = 0;
 
 	// Flow links in graph
@@ -690,9 +696,9 @@ void lfr_remove_node_from_table(lfr_node_id_t  id, lfr_node_table_t *table) {
 
 
 /**
-Print node table content onto file stream in a parser friendly (tab separated) format.
+Print nodes in table onto file stream in a parser friendly (tab separated) format.
 **/
-int lfr_save_node_table_to_file(const lfr_node_table_t *table, FILE * restrict stream) {
+int lfr_save_nodes_in_table_to_file(const lfr_node_table_t *table, FILE * restrict stream) {
 	int char_count = 0;
 
 	T_FOR_ROWS(index, *table) {
@@ -710,6 +716,31 @@ int lfr_save_node_table_to_file(const lfr_node_table_t *table, FILE * restrict s
 		char_count += fprintf(stream, "(%f, %f)\t", pos.x, pos.y);
 
 		char_count += fprintf(stream, "\n");
+	}
+
+	return char_count;
+}
+
+
+/**
+Print data links between nodes onto file stream in a parser friendly (tab separated) format.
+**/
+int lfr_save_data_links_in_table_to_file(const lfr_node_table_t* table, FILE * restrict stream) {
+	int char_count = 0;
+
+	T_FOR_ROWS(index, *table) {
+		lfr_node_id_t id = T_ID(*table, index);
+		const lfr_node_t *node = &table->node[index];
+		for (int slot = 0; slot < lfr_signature_size; slot++) {
+			if (node->input_data[slot].node.id == 0) { continue; }
+
+			char_count += fprintf(stream, "data\t");
+			char_count += fprintf(stream,
+				"#%u:%u -> #%u:%u",
+				node->input_data[slot].node.id, node->input_data[slot].slot,
+				id.id, slot);
+			char_count += fprintf(stream, "\n");
+		}
 	}
 
 	return char_count;
