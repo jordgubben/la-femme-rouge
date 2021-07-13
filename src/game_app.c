@@ -37,6 +37,7 @@ const char *fragment_shader_src =
 typedef struct gl_mesh_ {
 	GLuint vao;
 	GLuint position_vbo, color_vbo;
+	GLuint ebo;
 } gl_mesh_t;
 
 const float triangle_positions[3][3] = {
@@ -51,6 +52,9 @@ const float triangle_colors[3][3] = {
 	{0, 0, 1},
 };
 
+const unsigned triangle_indices[3] = {
+	0, 1,2,
+};
 
 /**
 Application starting point.
@@ -99,6 +103,12 @@ int main( int argc, char** argv) {
 	glEnableVertexAttribArray(1);
 	CHECK_GL_OR("Assign color attribute (VAO->VBO)", term_gl_app(win); return -23);
 
+	// Put indices in an EBO
+	glGenBuffers(1, &triangle.ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangle.ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangle_indices), triangle_indices, GL_STATIC_DRAW);
+	CHECK_GL_OR("Create geometry EBO (for indices)", term_gl_app(win); return -21);
+
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(win)) {
 		// Prepare rendering
@@ -114,7 +124,7 @@ int main( int argc, char** argv) {
 		CHECK_GL_OR("Use shader program", term_gl_app(win); return -110);
 		glBindVertexArray(triangle.vao);
 		CHECK_GL_OR("Bind VAO", term_gl_app(win); return -111);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		CHECK_GL_OR("Render triangle", term_gl_app(win); return -112);
 
 		// Cooperate with OS
