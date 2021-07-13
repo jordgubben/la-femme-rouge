@@ -30,6 +30,7 @@ $(BIN_DIR):
 # ======== #
 
 clean: $(BIN_DIR)
+	rm _*.o
 	rm -rv $(BIN_DIR)*
 
 
