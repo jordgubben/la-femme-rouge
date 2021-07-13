@@ -33,10 +33,11 @@ const char* vertex_shader_src =
 	"layout (location = 0) in vec3 attr_pos;\n"
 	"layout (location = 1) in vec3 attr_color;\n"
 	"out vec3 var_color;\n"
+	"uniform mat4 transform;"
 	"void main()\n"
 	"{\n"
 	"   var_color = attr_color;\n"
-	"   gl_Position = vec4(attr_pos.x, attr_pos.y, attr_pos.z, 1.0);\n"
+	"   gl_Position = transform * vec4(attr_pos, 1.0);\n"
 	"}\0";
 
 
@@ -59,12 +60,13 @@ typedef struct gl_mesh_ {
 } gl_mesh_t;
 
 typedef struct vec3_ { float x,y,z; } vec3_t;
+typedef struct mat4_ {float m[16]; } mat4_t;
 
 bool create_mesh(
 	const vec3_t [], const vec3_t [], unsigned num_verticies,
 	const unsigned [], unsigned num_indecies,
 	gl_mesh_t *);
-void render_mesh(const gl_program_t *, const gl_mesh_t *);
+void render_mesh(const gl_program_t *, const gl_mesh_t *, const mat4_t *);
 void delete_mesh(gl_mesh_t *);
 
 const vec3_t triangle_positions[3] = {
@@ -165,9 +167,18 @@ int main( int argc, char** argv) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		CHECK_GL_OR("Prepare rendering", goto quit);
 
+
+		// Set transform
+		const mat4_t transform = {
+			.5, 0,  0, 0,
+			0, .5,  0, 0,
+			0,  0, .5, 0,
+			0,  0,  0, 1
+		};
+
 		// Render world
-		render_mesh(&program, &unit_quad);
-		render_mesh(&program, &triangle);
+		render_mesh(&program, &unit_quad, &transform);
+		render_mesh(&program, &triangle, &transform);
 
 		// Render UI
 		nk_glfw3_render(&glfw, NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
@@ -241,11 +252,13 @@ bool create_mesh(
 /**
 Render the given mesh with OpenGL.
 **/
-void render_mesh(const gl_program_t *program, const gl_mesh_t *mesh) {
-	assert(program && mesh);
+void render_mesh(const gl_program_t *program, const gl_mesh_t *mesh, const mat4_t *transform) {
+	assert(program && mesh && transform);
 
-	// Render geometry
+	// Render mesh with the given program and the provided transform
 	glUseProgram(program->shader_program);
+	GLuint transform_loc = glGetUniformLocation(program->shader_program, "transform");
+	glUniformMatrix4fv(transform_loc, 1, GL_TRUE, &transform->m[0]);
 	glBindVertexArray(mesh->vao);
 	glDrawElements(GL_TRIANGLES, mesh->num_indecies, GL_UNSIGNED_INT, 0);
 	CHECK_GL("Render mesh");
