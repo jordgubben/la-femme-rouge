@@ -38,6 +38,7 @@ typedef struct gl_mesh_ {
 	GLuint vao;
 	GLuint position_vbo, color_vbo;
 	GLuint ebo;
+	unsigned num_indecies;
 } gl_mesh_t;
 
 typedef struct vec3_ { float x,y,z; } vec3_t;
@@ -46,6 +47,7 @@ bool create_mesh(
 	const vec3_t [], const vec3_t [], unsigned num_verticies,
 	const unsigned [], unsigned num_indecies,
 	gl_mesh_t *);
+void render_mesh(const gl_program_t *, const gl_mesh_t *);
 void delete_mesh(gl_mesh_t *);
 
 const vec3_t triangle_positions[3] = {
@@ -100,13 +102,8 @@ int main( int argc, char** argv) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		CHECK_GL_OR("Prepare rendering", goto quit);
 
-		// Render geometry
-		glUseProgram(program.shader_program);
-		CHECK_GL_OR("Use shader program", term_gl_app(win); return -110);
-		glBindVertexArray(triangle.vao);
-		CHECK_GL_OR("Bind VAO", term_gl_app(win); return -111);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		CHECK_GL_OR("Render triangle", term_gl_app(win); return -112);
+		// Render world
+		render_mesh(&program, &triangle);
 
 		// Cooperate with OS
 		glfwSwapBuffers(win);
@@ -160,6 +157,7 @@ bool create_mesh(
 	CHECK_GL_OR("Assign color attribute (VAO->VBO)", ok = false; goto exit;)
 
 	// Put indices in an EBO
+	mesh->num_indecies = num_indecies;
 	glGenBuffers(1, &mesh->ebo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned) * num_indecies, indices, GL_STATIC_DRAW);
@@ -170,6 +168,20 @@ bool create_mesh(
 		delete_mesh(mesh);
 	}
 	return ok;
+}
+
+
+/**
+Render the given mesh with OpenGL.
+**/
+void render_mesh(const gl_program_t *program, const gl_mesh_t *mesh) {
+	assert(program && mesh);
+
+	// Render geometry
+	glUseProgram(program->shader_program);
+	glBindVertexArray(mesh->vao);
+	glDrawElements(GL_TRIANGLES, mesh->num_indecies, GL_UNSIGNED_INT, 0);
+	CHECK_GL("Render mesh");
 }
 
 
@@ -185,6 +197,7 @@ void delete_mesh(gl_mesh_t *mesh) {
 	if (mesh->vao) { glDeleteVertexArrays(1, &mesh->vao); mesh->vao = 0;}
 	CHECK_GL("Delete mesh");
 }
+
 
 /********************************************************************************
 MIT License
