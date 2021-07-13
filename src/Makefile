@@ -18,8 +18,8 @@ run: $(BIN_DIR)game
 $(BIN_DIR)demo: demo_app.c *.h $(BIN_DIR) _nk.o
 	$(CC) $(CFLAGS) $<  _nk.o $(GLFLAGS) $(NKFLAGS) -o $@
 
-$(BIN_DIR)game: game_app.c *.h $(BIN_DIR)
-	$(CC) $(CFLAGS) $< $(GLFLAGS) $(NKFLAGS) -o $@
+$(BIN_DIR)game: game_app.c *.h $(BIN_DIR) _nk.o
+	$(CC) $(CFLAGS) $< _nk.o $(GLFLAGS) $(NKFLAGS) -o $@
 
 # Compile nuklear implementation separately
 _nk.o: impl_nk.c

@@ -10,6 +10,23 @@ LFR Scripting "game" used to demonstrate how to integrate LFR with an existing a
 // OpenGL
 #include "basic_gl.h"
 
+// Nuklear
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_KEYSTATE_BASED_INPUT
+#include "nuklear.h"
+#include "demo/glfw_opengl3/nuklear_glfw_gl3.h"
+
+// Render Nuklear with OpenGL
+#define MAX_VERTEX_BUFFER 512 * 1024
+#define MAX_ELEMENT_BUFFER 128 * 1024
+
+// Shader program
 
 const char* vertex_shader_src =
 	"#version 330 core\n"
@@ -118,8 +135,28 @@ int main( int argc, char** argv) {
 		return -20;
 	}
 
+	// Init Nuklear
+	struct nk_glfw glfw = {0};
+	struct nk_context *ctx = nk_glfw3_init(&glfw, win, NK_GLFW3_INSTALL_CALLBACKS);
+	{
+		struct nk_font_atlas *atlas;
+		nk_glfw3_font_stash_begin(&glfw, &atlas);
+		nk_glfw3_font_stash_end(&glfw);
+	}
+
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(win)) {
+		// Prep UI
+		nk_glfw3_new_frame(&glfw);
+
+		// Minimal example window
+		// (just get something on screen)
+		if (nk_begin(ctx, "Example window", nk_rect(50, 50, 600, 200), NK_WINDOW_TITLE)) {
+			nk_layout_row_dynamic(ctx, 0, 1);
+			nk_label(ctx, "~ Example lable ~", NK_TEXT_CENTERED);
+		}
+		nk_end(ctx);
+
 		// Prepare rendering
 		int width, height;
 		glfwGetWindowSize(win, &width, &height);
@@ -132,6 +169,9 @@ int main( int argc, char** argv) {
 		render_mesh(&program, &unit_quad);
 		render_mesh(&program, &triangle);
 
+		// Render UI
+		nk_glfw3_render(&glfw, NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
+
 		// Cooperate with OS
 		glfwSwapBuffers(win);
 		glfwPollEvents();
@@ -139,6 +179,7 @@ int main( int argc, char** argv) {
 
 	// Terminate application
 	quit:
+	nk_glfw3_shutdown(&glfw);
 	delete_mesh(&triangle);
 	delete_mesh(&unit_quad);
 	term_gl_app(win);
