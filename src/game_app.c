@@ -34,16 +34,18 @@ const char *fragment_shader_src =
 
 
 // Geometry
-typedef struct vertex_ {
-	float position[3];
-	float color[3];
-} vertex_t;
-
-vertex_t triangle[3] = {
-	{{0, +1, 0},{1,1,1}},
-	{{+1, 0, 0},{1,1,1}},
-	{{-1, 0, 0},{1,1,1}},
+const float triangle_positions[3][3] = {
+	{0, +1, 0},
+	{+1, 0, 0},
+	{-1, 0, 0},
 };
+
+const float triangle_colors[3][3] = {
+	{1, 0, 0},
+	{0, 1, 0},
+	{0, 0, 1},
+};
+
 
 /**
 Application starting point.
@@ -70,20 +72,27 @@ int main( int argc, char** argv) {
 	glBindVertexArray(vao);
 	CHECK_GL_OR("Create and bind VAO", term_gl_app(win); return -20);
 
-	// Put Position and Color in a buffer
-	GLuint vbo;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
+	// Put Position in a buffer
+	GLuint triangle_position_vbo;
+	glGenBuffers(1, &triangle_position_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, triangle_position_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_positions), triangle_positions, GL_STATIC_DRAW);
 	CHECK_GL_OR("Create geometry position Vertex Buffer Object", term_gl_app(win); return -21);
 
 	// Define how position is stored
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)(offsetof(vertex_t, position)));
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float)*3, (void*)(0));
 	glEnableVertexAttribArray(0);
 	CHECK_GL_OR("Link position attribut (VAO->VBO)", term_gl_app(win); return -22);
 
+	// Put Color in a buffer
+	GLuint triangle_color_vbo;
+	glGenBuffers(1, &triangle_color_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, triangle_color_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_colors), triangle_colors, GL_STATIC_DRAW);
+	CHECK_GL_OR("Create geometry color Vertex Buffer Object", term_gl_app(win); return -21);
+
 	// Define how color is stored
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)(offsetof(vertex_t, color)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)(0));
 	glEnableVertexAttribArray(1);
 	CHECK_GL_OR("Link color attribut (VAO->VBO)", term_gl_app(win); return -23);
 
@@ -112,7 +121,8 @@ int main( int argc, char** argv) {
 
 	// Terminate application
 	quit:
-	glDeleteBuffers(1, &vbo);
+	glDeleteBuffers(1, &triangle_position_vbo);
+	glDeleteBuffers(1, &triangle_color_vbo);
 	glDeleteVertexArrays(1, &vao);
 	term_gl_app(win);
 	return 0;
