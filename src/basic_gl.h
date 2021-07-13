@@ -13,7 +13,7 @@ bool check_gl(const char* hint, int line);
 #define CHECK_GL(hint) check_gl(hint, __LINE__)
 #define CHECK_GL_OR(hint, bail) if(!check_gl(hint, __LINE__)) { bail; }
 
-//// Content ////
+//// Window & Context ////
 
 /**
 Init application, giving us a GLFW window to render to with fairly modern OpenGL.
@@ -98,6 +98,71 @@ Terminate application.
 void term_gl_app(GLFWwindow *win) {
 	if (win) { glfwDestroyWindow(win); }
 	glfwTerminate();
+}
+
+
+//// Shaders ////
+typedef struct gl_program_ { GLuint shader_program; } gl_program_t;
+
+/**
+Create a shader program from the two provides source code strings.
+**/
+bool init_shader_program(const char* vertex_shader_src, const char* fragment_shader_src, gl_program_t *prog) {
+	bool compile_shader(GLenum type, const char* src, GLuint* shader);
+
+	// Compile shaders
+	GLuint vertex_shader = 0;
+	if(!compile_shader(GL_VERTEX_SHADER, vertex_shader_src, &vertex_shader)) {
+		return false;
+	}
+
+	GLuint fragment_shader = 0;
+	if(!compile_shader(GL_FRAGMENT_SHADER, fragment_shader_src, &fragment_shader)) {
+		return false;
+	}
+
+	// Link shader program
+	GLuint new_program = glCreateProgram();
+	glAttachShader(new_program, vertex_shader);
+	glAttachShader(new_program, fragment_shader);
+	glLinkProgram(new_program);
+	CHECK_GL_OR("Link shader program", return false);
+
+	// Delete shaders
+	glDeleteShader(vertex_shader);
+	glDeleteShader(fragment_shader);
+	CHECK_GL_OR("Delete linked shaders ", return false);
+
+	// All went well
+	prog->shader_program = new_program;
+	return true;
+}
+
+
+/**
+Comnpile a single shader GLSL string into an OpenGL shader.
+**/
+bool compile_shader(GLenum type, const char* src, GLuint* shader) {
+	GLuint shader_id = glCreateShader(type);
+	CHECK_GL_OR("Create shader", return false);
+
+	// Compile source
+	glShaderSource(shader_id, 1, &src, NULL);
+	glCompileShader(shader_id);
+
+	// Check success
+	GLint success;
+	glGetShaderiv(shader_id, GL_COMPILE_STATUS, &success);
+	if(!success) {
+		char buffer[1024];
+		glGetShaderInfoLog(shader_id, 1024, NULL, buffer);
+		printf("Shader compilation failed due to:\n---\n%s\n---\n", buffer);
+	}
+	CHECK_GL_OR("Compiled vertex shader.", return false);
+
+	*shader = shader_id;
+	// All went well
+	return true;
 }
 
 

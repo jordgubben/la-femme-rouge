@@ -11,6 +11,28 @@ LFR Scripting "game" used to demonstrate how to integrate LFR with an existing a
 #include "basic_gl.h"
 
 
+const char* vertex_shader_src =
+	"#version 330 core\n"
+	"layout (location = 0) in vec3 attr_pos;\n"
+	"layout (location = 1) in vec3 attr_color;\n"
+	"out vec3 var_color;\n"
+	"void main()\n"
+	"{\n"
+	"   var_color = attr_color;\n"
+	"   gl_Position = vec4(attr_pos.x, attr_pos.y, attr_pos.z, 1.0);\n"
+	"}\0";
+
+
+const char *fragment_shader_src =
+	"#version 330 core\n"
+	"in vec3 var_color;\n"
+	"out vec4 frag_color;\n"
+	"void main()\n"
+	"{\n"
+	"   frag_color = vec4(var_color, 1.0);\n"
+	"}\0";
+
+
 /**
 Application starting point.
 **/
@@ -23,6 +45,13 @@ int main( int argc, char** argv) {
 		return -1;
 	}
 
+	// Prepare basic shader program
+	gl_program_t program = {0};
+	if(!init_shader_program(vertex_shader_src, fragment_shader_src, &program)) {
+		term_gl_app(win);
+		return -10;
+	}
+
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(win)) {
 		// Prepare rendering
@@ -32,6 +61,10 @@ int main( int argc, char** argv) {
 		glClearColor(.75f, .55f, .75f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		CHECK_GL_OR("Prepare rendering", goto quit);
+
+		// Render
+		glUseProgram(program.shader_program);
+		CHECK_GL_OR("Use shader program", term_gl_app(win); return -15);
 
 		// Cooperate with OS
 		glfwSwapBuffers(win);
