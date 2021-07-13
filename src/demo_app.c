@@ -95,7 +95,7 @@ Run a single window application, where a graph could be rendered.
 **/
 void run_gui(lfr_graph_t* graph, lfr_graph_state_t *state) {
 	// Initialize window application
-	app_t app = {0};
+	lfr_editor_t app = {0};
 	if(!init_gl_app(1024,768, &app.window)) {
 		term_gl_app(app.window);
 		return;
@@ -130,8 +130,8 @@ void run_gui(lfr_graph_t* graph, lfr_graph_state_t *state) {
 		show_example_window(ctx);
 #endif // SHOW_EXAMPLE_WINDOW
 
-		show_graph(&app, graph, state);
-		show_state_queue(ctx, graph, state);
+		lfr_show_editor(&app, graph, state);
+		lfr_show_debug(ctx, graph, state);
 
 		// Prepare rendering
 		int width, height;

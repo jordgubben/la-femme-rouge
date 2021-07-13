@@ -21,7 +21,7 @@ typedef enum editor_mode_ {
 	no_em_modes // Not a mode :P
 } editor_mode_e;
 
-typedef struct app_ {
+typedef struct lfr_editor_ {
 	GLFWwindow* window;
 	struct nk_context *ctx;
 
@@ -36,24 +36,24 @@ typedef struct app_ {
 	// Layout
 	float input_ys[lfr_node_table_max_rows][lfr_signature_size];
 	lfr_vec2_t output_positions[lfr_node_table_max_rows][lfr_signature_size];
-} app_t;
+} lfr_editor_t;
 
 
 // Editor
-void show_graph(app_t * app, lfr_graph_t *, lfr_graph_state_t *);
-void show_state_queue(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
+void lfr_show_editor(lfr_editor_t * app, lfr_graph_t *, lfr_graph_state_t *);
+void lfr_show_debug(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
 
 #endif // LFR_EDITOR_H
 
 #ifdef LFR_EDITOR_IMPLEMENTATION
-void show_individual_node_window(lfr_node_id_t, lfr_graph_t *, lfr_graph_state_t *, app_t *);
-void show_editor_bg_window(lfr_graph_t *, const app_t *);
+void show_individual_node_window(lfr_node_id_t, lfr_graph_t *, lfr_graph_state_t *, lfr_editor_t *);
+void show_editor_bg_window(lfr_graph_t *, const lfr_editor_t *);
 
 
 /**
 Show a script graph using Nuclear widgets.
 **/
-void show_graph(app_t *app, lfr_graph_t *graph, lfr_graph_state_t* state) {
+void lfr_show_editor(lfr_editor_t *app, lfr_graph_t *graph, lfr_graph_state_t* state) {
 	assert(app && graph && state);
 	struct nk_context *ctx = app->ctx;
 
@@ -85,10 +85,10 @@ void show_graph(app_t *app, lfr_graph_t *graph, lfr_graph_state_t* state) {
 /**
 Show the window for an individual graph node.
 **/
-void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_graph_state_t *state, app_t *app) {
+void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_graph_state_t *state, lfr_editor_t *app) {
 	void show_node_main_flow_section(lfr_node_id_t, lfr_graph_t *, struct nk_context *);
-	void show_node_input_slots_group(lfr_node_id_t, const lfr_graph_state_t*, lfr_graph_t*, app_t*);
-	void show_node_output_slots_group(lfr_node_id_t, const lfr_graph_state_t*, lfr_graph_t*, app_t*);
+	void show_node_input_slots_group(lfr_node_id_t, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
+	void show_node_output_slots_group(lfr_node_id_t, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
 	assert(graph && state && app);
 	struct nk_context *ctx = app->ctx;
 
@@ -246,7 +246,7 @@ void show_node_input_slots_group(
 		lfr_node_id_t node_id,
 		const lfr_graph_state_t* state,
 		lfr_graph_t *graph,
-		app_t *app) {
+		lfr_editor_t *app) {
 	assert(state && graph && app && app->ctx);
 	struct nk_context *ctx = app->ctx;
 
@@ -327,7 +327,7 @@ void show_node_output_slots_group(
 		lfr_node_id_t node_id,
 		const lfr_graph_state_t* state,
 		lfr_graph_t *graph,
-		app_t *app) {
+		lfr_editor_t *app) {
 	assert(state && graph && app && app->ctx);
 	struct nk_context *ctx = app->ctx;
 
@@ -403,10 +403,10 @@ void show_node_output_slots_group(
 /**
 Show background window with flow lines, link selection and context menu for creating new nodes.
 **/
-void show_editor_bg_window(lfr_graph_t *graph, const app_t *app) {
-	void draw_flow_link_lines(const app_t *, const lfr_graph_t *, struct nk_command_buffer *);
-	void draw_data_link_lines(const app_t *, const lfr_graph_t *, struct nk_command_buffer *);
-	void draw_link_selection_curve(const app_t *, const lfr_graph_t *, struct nk_command_buffer *);
+void show_editor_bg_window(lfr_graph_t *graph, const lfr_editor_t *app) {
+	void draw_flow_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
+	void draw_data_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
+	void draw_link_selection_curve(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
 	void show_node_creation_contextual_menu(struct nk_context *, lfr_graph_t *);
 	assert(graph && app);
 	struct nk_context *ctx = app->ctx;
@@ -427,7 +427,7 @@ void show_editor_bg_window(lfr_graph_t *graph, const app_t *app) {
 /*
 Draw main flow link lines in various orange colors.
 */
-void draw_flow_link_lines(const app_t *app, const lfr_graph_t *graph, struct nk_command_buffer *canvas) {
+void draw_flow_link_lines(const lfr_editor_t *app, const lfr_graph_t *graph, struct nk_command_buffer *canvas) {
 	assert(app && graph && canvas);
 
 	for (int i = 0; i < graph->num_flow_links; i++) {
@@ -455,7 +455,7 @@ void draw_flow_link_lines(const app_t *app, const lfr_graph_t *graph, struct nk_
 /*
 Draw data lines in various green colors.
 */
-void draw_data_link_lines(const app_t *app, const lfr_graph_t *graph, struct nk_command_buffer *canvas) {
+void draw_data_link_lines(const lfr_editor_t *app, const lfr_graph_t *graph, struct nk_command_buffer *canvas) {
 	assert(app && graph && canvas);
 
 	for (int node_index = 0; node_index < graph->nodes.num_rows; node_index++) {
@@ -491,7 +491,7 @@ void draw_data_link_lines(const app_t *app, const lfr_graph_t *graph, struct nk_
 /*
 Draw selection curve (if in one of the appropriate modes).
 */
-void draw_link_selection_curve(const app_t *app, const lfr_graph_t *graph, struct nk_command_buffer *canvas) {
+void draw_link_selection_curve(const lfr_editor_t *app, const lfr_graph_t *graph, struct nk_command_buffer *canvas) {
 	assert(app && graph && canvas);
 
 	// Select source node in flow
@@ -557,7 +557,7 @@ void show_node_creation_contextual_menu(struct nk_context* ctx, lfr_graph_t *gra
 /**
 Show queued nodes.
 **/
-void show_state_queue(struct nk_context *ctx, lfr_graph_t *graph, lfr_graph_state_t *state) {
+void lfr_show_debug(struct nk_context *ctx, lfr_graph_t *graph, lfr_graph_state_t *state) {
 	assert(ctx && graph && state);
 	// Example window
 	nk_flags window_flags = 0
