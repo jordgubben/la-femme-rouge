@@ -64,8 +64,8 @@ typedef struct app_ {
 } app_t;
 
 // GL basics
-bool init_gl_app(int, int, app_t*);
-void term_gl_app(app_t*);
+bool init_gl_app(int, int, GLFWwindow **);
+void term_gl_app(GLFWwindow *);
 bool check_gl(const char* hint, int line);
 
 // Sandbox
@@ -135,8 +135,8 @@ Run a single window application, where a graph could be rendered.
 void run_gui(lfr_graph_t* graph, lfr_graph_state_t *state) {
 	// Initialize window application
 	app_t app = {0};
-	if(!init_gl_app(1024,768, &app)) {
-		term_gl_app(&app);
+	if(!init_gl_app(1024,768, &app.window)) {
+		term_gl_app(app.window);
 		return;
 	}
 
@@ -191,7 +191,7 @@ void run_gui(lfr_graph_t* graph, lfr_graph_state_t *state) {
 	// Terminate application
 	quit:
 	nk_glfw3_shutdown(&glfw);
-	term_gl_app(&app);
+	term_gl_app(app.window);
 }
 
 
@@ -811,12 +811,11 @@ void show_state_queue(struct nk_context *ctx, lfr_graph_t *graph, lfr_graph_stat
 /**
 Init application, giving us a GLFW window to render to with OpenGL.
 **/
-bool init_gl_app(int width, int heigt, app_t* app) {
+bool init_gl_app(int width, int heigt, GLFWwindow **win) {
 	void error_callback(int error, const char* description);
 	void describe_gl_driver();
 
-	assert(app);
-	app->window = NULL;
+	assert(win && *win == NULL);
 
 	// Start up GLFW
 	glfwSetErrorCallback(error_callback);
@@ -830,13 +829,13 @@ bool init_gl_app(int width, int heigt, app_t* app) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	app->window = glfwCreateWindow(width, heigt, "Minimal GLFW window", NULL, NULL);
-	if (!app->window) {
+	*win = glfwCreateWindow(width, heigt, "Minimal GLFW window", NULL, NULL);
+	if (!*win) {
 		fprintf(stderr, "Failed to create GLFW window!\n");
 		glfwTerminate();
 		return false;
 	}
-	glfwMakeContextCurrent(app->window);
+	glfwMakeContextCurrent(*win);
 	glfwSwapInterval(1);
 	glewInit();
 	describe_gl_driver();
@@ -887,8 +886,8 @@ void describe_gl_driver() {
 /**
 Terminate application.
 **/
-void term_gl_app(app_t* app) {
-	if (app->window) { glfwDestroyWindow(app->window); }
+void term_gl_app(GLFWwindow *win) {
+	if (win) { glfwDestroyWindow(win); }
 	glfwTerminate();
 }
 
