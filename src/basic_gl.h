@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 
 // Table of Content
-bool init_gl_app(int, int, GLFWwindow **);
+bool init_gl_app(const char* ,int, int, GLFWwindow **);
 void term_gl_app(GLFWwindow *);
 bool check_gl(const char* hint, int line);
 
@@ -18,7 +18,7 @@ bool check_gl(const char* hint, int line);
 /**
 Init application, giving us a GLFW window to render to with fairly modern OpenGL.
 **/
-bool init_gl_app(int width, int heigt, GLFWwindow **win) {
+bool init_gl_app(const char* title, int width, int heigt, GLFWwindow **win) {
 	void error_callback_(int error, const char* description);
 	void describe_gl_driver_();
 
@@ -36,7 +36,7 @@ bool init_gl_app(int width, int heigt, GLFWwindow **win) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	*win = glfwCreateWindow(width, heigt, "Minimal GLFW window", NULL, NULL);
+	*win = glfwCreateWindow(width, heigt, title, NULL, NULL);
 	if (!*win) {
 		fprintf(stderr, "Failed to create GLFW window!\n");
 		glfwTerminate();

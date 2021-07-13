@@ -9,14 +9,17 @@ BIN_DIR=../bin/
 # Build & run things #
 # ================== #
 .phony: main run
-main: $(BIN_DIR)demo tags
+main: $(BIN_DIR)demo $(BIN_DIR)game tags
 
-run: $(BIN_DIR)demo
-	cd $(BIN_DIR) && ./demo
+run: $(BIN_DIR)game
+	cd $(BIN_DIR) && ./game
 
 # Build demo application
 $(BIN_DIR)demo: demo_app.c *.h $(BIN_DIR) _nk.o
 	$(CC) $(CFLAGS) $<  _nk.o $(GLFLAGS) $(NKFLAGS) -o $@
+
+$(BIN_DIR)game: game_app.c *.h $(BIN_DIR)
+	$(CC) $(CFLAGS) $< $(GLFLAGS) $(NKFLAGS) -o $@
 
 # Compile nuklear implementation separately
 _nk.o: impl_nk.c

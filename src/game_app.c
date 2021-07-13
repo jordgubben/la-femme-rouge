@@ -1,0 +1,71 @@
+/****
+LFR Scripting "game" used to demonstrate how to integrate LFR with an existing application.
+****/
+
+// LIBC
+#include <assert.h>
+#include <stdio.h>
+#include <stdbool.h>
+
+// OpenGL
+#include "basic_gl.h"
+
+
+/**
+Application starting point.
+**/
+int main( int argc, char** argv) {
+	GLFWwindow *win;
+
+	// Initialize window (Full HD)
+	if(!init_gl_app("Full HD game", 1920, 1080, &win)) {
+		term_gl_app(win);
+		return -1;
+	}
+
+	// Keep the motor runnin
+	while(!glfwWindowShouldClose(win)) {
+		// Prepare rendering
+		int width, height;
+		glfwGetWindowSize(win, &width, &height);
+		glViewport(0, 0, width, height);
+		glClearColor(.75f, .55f, .75f, 1.f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		CHECK_GL_OR("Prepare rendering", goto quit);
+
+		// Cooperate with OS
+		glfwSwapBuffers(win);
+		glfwPollEvents();
+	}
+
+	// Terminate application
+	quit:
+	term_gl_app(win);
+	return 0;
+}
+
+
+/********************************************************************************
+MIT License
+===========
+
+Copyright (c) 2021 Jakob Eklund
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+********************************************************************************/

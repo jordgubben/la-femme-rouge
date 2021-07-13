@@ -96,7 +96,7 @@ Run a single window application, where a graph could be rendered.
 void run_gui(lfr_graph_t* graph, lfr_graph_state_t *state) {
 	// Initialize window application
 	lfr_editor_t app = {0};
-	if(!init_gl_app(1024,768, &app.window)) {
+	if(!init_gl_app("LFR Editor example", 1024,768, &app.window)) {
 		term_gl_app(app.window);
 		return;
 	}
