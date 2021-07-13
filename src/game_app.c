@@ -40,13 +40,21 @@ typedef struct gl_mesh_ {
 	GLuint ebo;
 } gl_mesh_t;
 
-const float triangle_positions[3][3] = {
+typedef struct vec3_ { float x,y,z; } vec3_t;
+
+bool create_mesh(
+	const vec3_t [], const vec3_t [], unsigned num_verticies,
+	const unsigned [], unsigned num_indecies,
+	gl_mesh_t *);
+void delete_mesh(gl_mesh_t *);
+
+const vec3_t triangle_positions[3] = {
 	{0, +1, 0},
 	{+1, 0, 0},
 	{-1, 0, 0},
 };
 
-const float triangle_colors[3][3] = {
+const vec3_t triangle_colors[3] = {
 	{1, 0, 0},
 	{0, 1, 0},
 	{0, 0, 1},
@@ -76,38 +84,11 @@ int main( int argc, char** argv) {
 	}
 
 	// Create a VAO to associate with some geometry to render
-	gl_mesh_t triangle;
-	glGenVertexArrays(1, &triangle.vao);
-	glBindVertexArray(triangle.vao);
-	CHECK_GL_OR("Create and bind triangle VAO", term_gl_app(win); return -20);
-
-	// Put Position in a buffer
-	glGenBuffers(1, &triangle.position_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, triangle.position_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_positions), triangle_positions, GL_STATIC_DRAW);
-	CHECK_GL_OR("Create geometry position VBO", term_gl_app(win); return -21);
-
-	// Define how position is stored
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float)*3, (void*)(0));
-	glEnableVertexAttribArray(0);
-	CHECK_GL_OR("Assign position attribute (VAO->VBO)", term_gl_app(win); return -22);
-
-	// Put Color in a buffer
-	glGenBuffers(1, &triangle.color_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, triangle.color_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_colors), triangle_colors, GL_STATIC_DRAW);
-	CHECK_GL_OR("Create geometry color VBO", term_gl_app(win); return -21);
-
-	// Define how color is stored
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)(0));
-	glEnableVertexAttribArray(1);
-	CHECK_GL_OR("Assign color attribute (VAO->VBO)", term_gl_app(win); return -23);
-
-	// Put indices in an EBO
-	glGenBuffers(1, &triangle.ebo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangle.ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangle_indices), triangle_indices, GL_STATIC_DRAW);
-	CHECK_GL_OR("Create geometry EBO (for indices)", term_gl_app(win); return -21);
+	gl_mesh_t triangle = {0};
+	if (!create_mesh(triangle_positions, triangle_colors, 3, triangle_indices, 3, &triangle)) {
+		term_gl_app(win);
+		return -20;
+	}
 
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(win)) {
@@ -141,6 +122,69 @@ int main( int argc, char** argv) {
 	return 0;
 }
 
+
+/**
+Create an OpenGL mesh from vertices and indices.
+**/
+bool create_mesh(
+		const vec3_t positions[], const vec3_t colors[], unsigned num_verticies,
+		const unsigned indices[], unsigned num_indecies,
+		gl_mesh_t *mesh) {
+	assert(mesh);
+	bool ok = true;
+
+	glGenVertexArrays(1, &mesh->vao);
+	glBindVertexArray(mesh->vao);
+	CHECK_GL_OR("Create and bind mesh VAO", ok = false; goto exit;)
+
+	// Put Position in a buffer
+	glGenBuffers(1, &mesh->position_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, mesh->position_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3_t) * num_verticies, positions, GL_STATIC_DRAW);
+	CHECK_GL_OR("Create mesh VBO for positions", ok = false; goto exit;)
+
+	// Define how position is stored
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3_t), (void*)(0));
+	glEnableVertexAttribArray(0);
+	CHECK_GL_OR("Assign position attribute (VAO->VBO)", ok = false; goto exit;)
+
+	// Put Color in a buffer
+	glGenBuffers(1, &mesh->color_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, mesh->color_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3_t) * num_verticies, colors, GL_STATIC_DRAW);
+	CHECK_GL_OR("Create geometry color VBO", ok = false; goto exit;)
+
+	// Define how color is stored
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vec3_t), (void*)(0));
+	glEnableVertexAttribArray(1);
+	CHECK_GL_OR("Assign color attribute (VAO->VBO)", ok = false; goto exit;)
+
+	// Put indices in an EBO
+	glGenBuffers(1, &mesh->ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned) * num_indecies, indices, GL_STATIC_DRAW);
+	CHECK_GL_OR("Create geometry EBO (for indices)", ok = false; goto exit;)
+
+	exit:
+	if (!ok) {
+		delete_mesh(mesh);
+	}
+	return ok;
+}
+
+
+/**
+Delete (all existing parts of) given mesh.
+**/
+void delete_mesh(gl_mesh_t *mesh) {
+	assert(mesh);
+
+	if (mesh->ebo) { glDeleteBuffers(1, &mesh->ebo); mesh->ebo = 0;}
+	if (mesh->position_vbo) { glDeleteBuffers(1, &mesh->position_vbo); mesh->position_vbo = 0;}
+	if (mesh->color_vbo) { glDeleteBuffers(1, &mesh->color_vbo); mesh->color_vbo = 0;}
+	if (mesh->vao) { glDeleteVertexArrays(1, &mesh->vao); mesh->vao = 0;}
+	CHECK_GL("Delete mesh");
+}
 
 /********************************************************************************
 MIT License
