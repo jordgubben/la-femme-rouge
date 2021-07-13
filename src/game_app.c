@@ -66,6 +66,26 @@ const unsigned triangle_indices[3] = {
 	0, 1,2,
 };
 
+
+const vec3_t unit_quad_positions[4] = {
+	{-0.5, +0.5, 0},
+	{+0.5, +0.5, 0},
+	{+0.5, -0.5, 0},
+	{-0.5, -0.5, 0},
+};
+const vec3_t unit_quad_colors[4] = {
+	{0, 0, 0},
+	{1, 1, 0},
+	{0, 1, 1},
+	{1, 0, 1},
+};
+
+const unsigned unit_quad_indices[3*2] = {
+	0, 1, 2,
+	0, 2, 3,
+};
+
+
 /**
 Application starting point.
 **/
@@ -92,6 +112,12 @@ int main( int argc, char** argv) {
 		return -20;
 	}
 
+	gl_mesh_t unit_quad = {0};
+	if (!create_mesh(unit_quad_positions, unit_quad_colors, 4, unit_quad_indices, 6, &unit_quad)) {
+		term_gl_app(win);
+		return -20;
+	}
+
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(win)) {
 		// Prepare rendering
@@ -103,6 +129,7 @@ int main( int argc, char** argv) {
 		CHECK_GL_OR("Prepare rendering", goto quit);
 
 		// Render world
+		render_mesh(&program, &unit_quad);
 		render_mesh(&program, &triangle);
 
 		// Cooperate with OS
@@ -112,9 +139,8 @@ int main( int argc, char** argv) {
 
 	// Terminate application
 	quit:
-	glDeleteBuffers(1, &triangle.position_vbo);
-	glDeleteBuffers(1, &triangle.color_vbo);
-	glDeleteVertexArrays(1, &triangle.vao);
+	delete_mesh(&triangle);
+	delete_mesh(&unit_quad);
 	term_gl_app(win);
 	return 0;
 }
