@@ -15,7 +15,7 @@ run: $(BIN_DIR)demo
 	cd $(BIN_DIR) && ./demo
 
 # Build demo application
-$(BIN_DIR)demo: demo.c *.h $(BIN_DIR) _nk.o
+$(BIN_DIR)demo: demo_app.c *.h $(BIN_DIR) _nk.o
 	$(CC) $(CFLAGS) $<  _nk.o $(GLFLAGS) $(NKFLAGS) -o $@
 
 # Compile nuklear implementation separately
