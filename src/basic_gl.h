@@ -128,6 +128,17 @@ bool init_shader_program(const char* vertex_shader_src, const char* fragment_sha
 	glLinkProgram(new_program);
 	CHECK_GL_OR("Link shader program", return false);
 
+	// Check link success
+	GLint link_success = 0;
+	glGetProgramiv(new_program, GL_LINK_STATUS, &link_success);
+	if (!link_success) {
+		char buffer[1024];
+		glGetProgramInfoLog(new_program, 1024, NULL, buffer);
+		printf("Shader program linkage failed due to:\n---\n%s\n---\n", buffer);
+		return false;
+	}
+	CHECK_GL_OR("Check program linking succes", return false);
+
 	// Delete shaders
 	glDeleteShader(vertex_shader);
 	glDeleteShader(fragment_shader);
@@ -149,6 +160,7 @@ bool compile_shader(GLenum type, const char* src, GLuint* shader) {
 	// Compile source
 	glShaderSource(shader_id, 1, &src, NULL);
 	glCompileShader(shader_id);
+	CHECK_GL_OR("Compiled vertex shader.", return false);
 
 	// Check success
 	GLint success;
@@ -157,8 +169,9 @@ bool compile_shader(GLenum type, const char* src, GLuint* shader) {
 		char buffer[1024];
 		glGetShaderInfoLog(shader_id, 1024, NULL, buffer);
 		printf("Shader compilation failed due to:\n---\n%s\n---\n", buffer);
+		return false;
 	}
-	CHECK_GL_OR("Compiled vertex shader.", return false);
+	CHECK_GL_OR("Check shader compilation status", return false);
 
 	*shader = shader_id;
 	// All went well
