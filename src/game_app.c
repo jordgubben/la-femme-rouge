@@ -134,6 +134,22 @@ typedef enum game_instructions_ {
 	gi_no_instructions // Not an instruction
 } game_instructions_e;
 
+void get_actor_position_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
+		const lfr_graph_t* graph) {
+	assert(custom_data);
+	population_t *pop = custom_data;
+
+	// Find actor position
+	int actor_index = input[0].int_value;
+	actor_index %= num_actors_in_world;
+	vec2_t pos = pop->actor_positions[actor_index];
+
+	// Output position
+	output[0] = lfr_vec2_xy(pos.x, pos.y);
+}
+
 void do_nothing_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
@@ -149,7 +165,7 @@ lfr_instruction_def_t game_instructions[gi_no_instructions] = {
 		},
 		{},
 	},
-	{"get_actor_position", do_nothing_proc,
+	{"get_actor_position", get_actor_position_proc,
 		{{"ACTOR", {lfr_int_type, .int_value = 0 }}},
 		{{"POS", (lfr_variant_t) { lfr_vec2_type, .vec2_value = { 0,0}}},},
 	},
@@ -206,7 +222,7 @@ int main( int argc, char** argv) {
 	}
 
 	// Setup LFR
-	lfr_vm_t vm = {game_instructions, gi_no_instructions};
+	lfr_vm_t vm = {game_instructions, gi_no_instructions, &pop};
 	lfr_graph_t graph = {0};
 	lfr_init_graph(&graph);
 	lfr_graph_state_t graph_state = {0};

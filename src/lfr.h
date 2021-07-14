@@ -271,7 +271,8 @@ int lfr_step(const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *st
 	const lfr_node_t *head = &graph->nodes.node[node_index];
 
 	// Process instruction
-	if (head->instruction < lfr_no_core_instructions) {
+	// TODO: Extract to separate function
+	{
 		lfr_variant_t input[8] = {0}, output[8] = {0};
 
 		// Get Input
@@ -280,7 +281,8 @@ int lfr_step(const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *st
 		}
 
 		// Process instruction
-		lfr_get_instruction(head->instruction, vm)->func(node_id, input, output, vm->custom_data, graph);
+		const lfr_instruction_def_t *instruction = lfr_get_instruction(head->instruction, vm);
+		instruction->func(node_id, input, output, vm->custom_data, graph);
 
 		// Update node state with new result data
 		unsigned state_index = lfr_insert_node_state_at(node_id, &graph->nodes, &state->nodes);
