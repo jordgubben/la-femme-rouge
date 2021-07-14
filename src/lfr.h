@@ -140,7 +140,7 @@ int lfr_save_flow_links_to_file(const lfr_graph_t *, FILE * restrict stream);
 
 typedef struct lfr_instruction_def_ {
 	const char *name;
-	void (*func)(lfr_node_id_t, lfr_variant_t input[], lfr_variant_t output[], const lfr_graph_t *);
+	void (*func)(lfr_node_id_t, lfr_variant_t input[], lfr_variant_t output[], void*, const lfr_graph_t *);
 	struct {
 		const char* name;
 		lfr_variant_t data;
@@ -150,6 +150,7 @@ typedef struct lfr_instruction_def_ {
 typedef struct lfr_vm_ {
 	const lfr_instruction_def_t *custom_instructions;
 	unsigned num_custom_instructions;
+	void *custom_data;
 } lfr_vm_t;
 
 const char* lfr_get_instruction_name(lfr_instruction_e, const lfr_vm_t *);
@@ -279,7 +280,7 @@ int lfr_step(const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *st
 		}
 
 		// Process instruction
-		lfr_get_instruction(head->instruction, vm)->func(node_id, input, output, graph);
+		lfr_get_instruction(head->instruction, vm)->func(node_id, input, output, vm->custom_data, graph);
 
 		// Update node state with new result data
 		unsigned state_index = lfr_insert_node_state_at(node_id, &graph->nodes, &state->nodes);
@@ -822,6 +823,7 @@ int lfr_save_fixed_values_in_table_to_file(const lfr_node_table_t* table, FILE *
 
 void lfr_print_own_id_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
 		const lfr_graph_t* graph) {
 
 	unsigned node_index = T_INDEX(graph->nodes, node_id);
@@ -831,6 +833,7 @@ void lfr_print_own_id_proc(lfr_node_id_t node_id,
 
 void lfr_randomize_number_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
 		const lfr_graph_t* graph) {
 
 	// Assign random float value
@@ -845,6 +848,7 @@ Combine floats into a sum.
 **/
 void lfr_add_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
 		const lfr_graph_t* graph) {
 
 	// Sum all floats
@@ -865,6 +869,7 @@ Subtract - Get the difference between two floats.
 **/
 void lfr_sub_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
 		const lfr_graph_t* graph) {
 
 	// Subtract the second float from the first
@@ -881,6 +886,7 @@ Multiply - Get the procuct of two (or more) floats
 **/
 void lfr_mul_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
 		const lfr_graph_t* graph) {
 
 	// Multiply all floats
@@ -901,6 +907,7 @@ Print value to stdout.
 **/
 void lfr_print_value_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
 		const lfr_graph_t* graph) {
 
 	switch(input[0].type) {

@@ -136,6 +136,7 @@ typedef enum game_instructions_ {
 
 void do_nothing_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
 		const lfr_graph_t* graph) {
 	// TODO: Replace with implementations that do something
 }
