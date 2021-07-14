@@ -32,7 +32,7 @@ LFR Scripting demo app.
 #define SHOW_EXAMPLE_WINDOW 0
 
 // Editor
-void run_gui(lfr_graph_t *, lfr_graph_state_t *);
+void run_gui(const lfr_vm_t *, lfr_graph_t *, lfr_graph_state_t *);
 void show_example_window(struct nk_context *);
 
 
@@ -40,6 +40,7 @@ void show_example_window(struct nk_context *);
 Starting pint for the demo application.
 **/
 int main( int argc, char** argv) {
+	lfr_vm_t vm = {0};
 	lfr_graph_t graph = {0};
 	lfr_init_graph(&graph);
 
@@ -47,7 +48,7 @@ int main( int argc, char** argv) {
 	if (argc > 1) {
 		printf("Loading graph from file: %s\n", argv[1]);
 		FILE * fp = fopen(argv[1], "r");
-		lfr_load_graph_from_file(fp, &graph);
+		lfr_load_graph_from_file(fp, &vm, &graph);
 		fclose(fp);
 	} else {
 		// Construct graph
@@ -72,13 +73,13 @@ int main( int argc, char** argv) {
 
 	// Run graph in gui
 	lfr_graph_state_t state = {0};
-	run_gui(&graph, &state);
+	run_gui(&vm, &graph, &state);
 
 	// Optionally dump graph script to file
 	if (argc > 1) {
 		printf("Saving graph to file: %s\n", argv[1]);
 		FILE * fp = fopen(argv[1], "w");
-		lfr_save_graph_to_file(&graph, fp);
+		lfr_save_graph_to_file(&graph, &vm, fp);
 		fclose(fp);
 	}
 
@@ -93,9 +94,10 @@ int main( int argc, char** argv) {
 /**
 Run a single window application, where a graph could be rendered.
 **/
-void run_gui(lfr_graph_t* graph, lfr_graph_state_t *state) {
-	// Initialize window application
+void run_gui(const lfr_vm_t *vm, lfr_graph_t* graph, lfr_graph_state_t *state) {
 	lfr_editor_t app = {0};
+
+	// Initialize window application
 	if(!init_gl_app("LFR Editor example", 1024,768, &app.window)) {
 		term_gl_app(app.window);
 		return;
@@ -120,7 +122,7 @@ void run_gui(lfr_graph_t* graph, lfr_graph_state_t *state) {
 		double now = glfwGetTime();
 		while (now  > last_step_time + time_between_steps) {
 			last_step_time += time_between_steps;
-			lfr_step(graph, state);
+			lfr_step(vm, graph, state);
 		}
 
 		// Prep UI
@@ -130,7 +132,7 @@ void run_gui(lfr_graph_t* graph, lfr_graph_state_t *state) {
 		show_example_window(ctx);
 #endif // SHOW_EXAMPLE_WINDOW
 
-		lfr_show_editor(&app, graph, state);
+		lfr_show_editor(&app, vm, graph, state);
 		lfr_show_debug(ctx, graph, state);
 
 		// Prepare rendering

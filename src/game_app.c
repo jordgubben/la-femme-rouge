@@ -112,14 +112,35 @@ const unsigned unit_quad_indices[3*2] = {
 	0, 2, 3,
 };
 
+//// Games custom instructions ////
+
+typedef enum game_instructions_ {
+	gi_set_actor_position,
+	gi_get_actor_position,
+	gi_no_instructions // Not an instruction
+} game_instructions_e;
+
+void do_nothing_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		const lfr_graph_t* graph) {
+	// TODO: Replace with implementations that do something
+}
+
+lfr_instruction_def_t game_instructions[gi_no_instructions] = {
+	{"get_actor_position", do_nothing_proc, {}, {}},
+	{"set_actor_position", do_nothing_proc, {}, {}},
+};
+
 
 /**
 Application starting point.
 **/
 int main( int argc, char** argv) {
-	GLFWwindow *win;
+	printf("gi_set_actor_position = %u\n" , gi_set_actor_position);
+	printf("gi_get_actor_position = %u\n" , gi_get_actor_position);
 
 	// Initialize window (Full HD)
+	GLFWwindow *win;
 	if(!init_gl_app("Full HD game", 1920, 1080, &win)) {
 		term_gl_app(win);
 		return -1;
@@ -155,6 +176,7 @@ int main( int argc, char** argv) {
 	}
 
 	// Setup LFR
+	lfr_vm_t vm = {game_instructions, gi_no_instructions};
 	lfr_graph_t graph = {0};
 	lfr_init_graph(&graph);
 	lfr_graph_state_t graph_state = {0};
@@ -162,11 +184,11 @@ int main( int argc, char** argv) {
 
 	// Set up LFR example
 	// (keep things simmple by skipping load from file)
-	lfr_node_id_t n1 = lfr_add_node(lfr_print_own_id, &graph);
+	lfr_node_id_t n1 = lfr_add_custom_node(gi_get_actor_position, &graph);
 	lfr_node_id_t n2 = lfr_add_node(lfr_randomize_number, &graph);
 	lfr_node_id_t n3 = lfr_add_node(lfr_randomize_number, &graph);
 	lfr_node_id_t n4 = lfr_add_node(lfr_add, &graph);
-	lfr_node_id_t n5 = lfr_add_node(lfr_print_value, &graph);
+	lfr_node_id_t n5 = lfr_add_custom_node(gi_set_actor_position, &graph);
 	lfr_link_nodes(n1, n2, &graph);
 	lfr_link_nodes(n2, n3, &graph);
 	lfr_link_nodes(n3, n4, &graph);
@@ -185,14 +207,14 @@ int main( int argc, char** argv) {
 		double now = glfwGetTime();
 		while (now  > last_step_time + time_between_steps) {
 			last_step_time += time_between_steps;
-			lfr_step(&graph, &graph_state);
+			lfr_step(&vm, &graph, &graph_state);
 		}
 
 		// Prep UI
 		nk_glfw3_new_frame(&glfw);
 
 		// LFR editor
-		lfr_show_editor(&editor, &graph, &graph_state);
+		lfr_show_editor(&editor, &vm, &graph, &graph_state);
 
 		// Prepare rendering
 		int width, height;

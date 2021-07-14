@@ -40,20 +40,20 @@ typedef struct lfr_editor_ {
 
 
 // Editor
-void lfr_show_editor(lfr_editor_t * app, lfr_graph_t *, lfr_graph_state_t *);
+void lfr_show_editor(lfr_editor_t * app, const lfr_vm_t*, lfr_graph_t *, lfr_graph_state_t *);
 void lfr_show_debug(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
 
 #endif // LFR_EDITOR_H
 
 #ifdef LFR_EDITOR_IMPLEMENTATION
-void show_individual_node_window(lfr_node_id_t, lfr_graph_t *, lfr_graph_state_t *, lfr_editor_t *);
-void show_editor_bg_window(lfr_graph_t *, const lfr_editor_t *);
+void show_individual_node_window(lfr_node_id_t, const lfr_vm_t*, lfr_graph_t*, lfr_graph_state_t*, lfr_editor_t*);
+void show_editor_bg_window(lfr_graph_t *, const lfr_vm_t*, const lfr_editor_t *);
 
 
 /**
 Show a script graph using Nuclear widgets.
 **/
-void lfr_show_editor(lfr_editor_t *app, lfr_graph_t *graph, lfr_graph_state_t* state) {
+void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, lfr_graph_state_t* state) {
 	assert(app && graph && state);
 	struct nk_context *ctx = app->ctx;
 
@@ -62,11 +62,11 @@ void lfr_show_editor(lfr_editor_t *app, lfr_graph_t *graph, lfr_graph_state_t* s
 	int num_nodes = graph->nodes.num_rows;
 	for (int index = 0; index < num_nodes; index++) {
 		lfr_node_id_t node_id = node_ids[index];
-		show_individual_node_window(node_id, graph, state, app);
+		show_individual_node_window(node_id, vm, graph, state, app);
 	}
 
 	// Show node flow et.al.
-	show_editor_bg_window(graph, app);
+	show_editor_bg_window(graph, vm, app);
 
 	// Remove node that has recently had it's window closed
 	// (Avoid pain by waitning until after cycling through nodes before removing one)
@@ -85,10 +85,13 @@ void lfr_show_editor(lfr_editor_t *app, lfr_graph_t *graph, lfr_graph_state_t* s
 /**
 Show the window for an individual graph node.
 **/
-void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_graph_state_t *state, lfr_editor_t *app) {
+void show_individual_node_window(lfr_node_id_t node_id,
+		const lfr_vm_t *vm, lfr_graph_t *graph, lfr_graph_state_t *state, lfr_editor_t *app) {
 	void show_node_main_flow_section(lfr_node_id_t, lfr_graph_t *, struct nk_context *);
-	void show_node_input_slots_group(lfr_node_id_t, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
-	void show_node_output_slots_group(lfr_node_id_t, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
+	void show_node_input_slots_group(lfr_node_id_t,
+		const lfr_vm_t*, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
+	void show_node_output_slots_group(lfr_node_id_t,
+		const lfr_vm_t *vm, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
 	assert(graph && state && app);
 	struct nk_context *ctx = app->ctx;
 
@@ -97,7 +100,7 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 	// Window title
 	char title[1024];
 	lfr_instruction_e inst = graph->nodes.node[index].instruction;
-	const char* inst_name = lfr_get_instruction_name(inst);
+	const char* inst_name = lfr_get_instruction_name(inst, vm);
 	snprintf(title, 1024, "[#%u|%u] %s", node_id.id, index, inst_name);
 
 	// Initial window rect
@@ -163,8 +166,8 @@ void show_individual_node_window(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 		// Data (input and output)
 		{
 			nk_layout_row_dynamic(ctx, 150, 2);
-			show_node_input_slots_group(node_id, state, graph, app);
-			show_node_output_slots_group(node_id, state, graph, app);
+			show_node_input_slots_group(node_id, vm, state, graph, app);
+			show_node_output_slots_group(node_id, vm, state, graph, app);
 		}
 
 		// Misc. management
@@ -244,6 +247,7 @@ Show an UI group listing all *input* data slots of the given node.
 */
 void show_node_input_slots_group(
 		lfr_node_id_t node_id,
+		const lfr_vm_t *vm,
 		const lfr_graph_state_t* state,
 		lfr_graph_t *graph,
 		lfr_editor_t *app) {
@@ -262,7 +266,7 @@ void show_node_input_slots_group(
 
 	// Go over all (real) input slots
 	for (int slot = 0; slot < lfr_signature_size; slot++) {
-		const char* name = lfr_get_instruction(node->instruction)->input_signature[slot].name;
+		const char* name = lfr_get_instruction(node->instruction, vm)->input_signature[slot].name;
 		if (!name) { continue; };
 
 		// Name (+ dummy buttons)
@@ -304,7 +308,7 @@ void show_node_input_slots_group(
 
 		// Current input value (linked or fixed)
 		nk_layout_row_dynamic(ctx, 0, 1);
-		const lfr_variant_t data = lfr_get_input_value(node_id, slot, graph, state);
+		const lfr_variant_t data = lfr_get_input_value(node_id, slot, vm, graph, state);
 		if (data.type == lfr_float_type) {
 			// Set a new value if it's changed by the UI (breaks link)
 			float new_value = nk_propertyf(ctx, "#=", FLT_MIN, data.float_value, FLT_MAX, 1, 1);
@@ -325,6 +329,7 @@ Show an UI group listing all *output* data slots of the given node.
 */
 void show_node_output_slots_group(
 		lfr_node_id_t node_id,
+		const lfr_vm_t *vm,
 		const lfr_graph_state_t* state,
 		lfr_graph_t *graph,
 		lfr_editor_t *app) {
@@ -343,8 +348,8 @@ void show_node_output_slots_group(
 
 	// Go over all (real) output slots
 	for (int slot = 0; slot < lfr_signature_size; slot++) {
-		const char* name = lfr_get_instruction(inst)->output_signature[slot].name;
-		lfr_variant_t data = lfr_get_output_value(node_id, slot, graph, state);
+		const char* name = lfr_get_instruction(inst, vm)->output_signature[slot].name;
+		lfr_variant_t data = lfr_get_output_value(node_id, slot, vm, graph, state);
 		if (!name) { continue; }
 
 		// Name (+ dummy buttons)
@@ -403,11 +408,11 @@ void show_node_output_slots_group(
 /**
 Show background window with flow lines, link selection and context menu for creating new nodes.
 **/
-void show_editor_bg_window(lfr_graph_t *graph, const lfr_editor_t *app) {
+void show_editor_bg_window(lfr_graph_t *graph, const lfr_vm_t *vm, const lfr_editor_t *app) {
 	void draw_flow_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
 	void draw_data_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
 	void draw_link_selection_curve(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
-	void show_node_creation_contextual_menu(struct nk_context *, lfr_graph_t *);
+	void show_node_creation_contextual_menu(const lfr_vm_t *, struct nk_context *, lfr_graph_t *);
 	assert(graph && app);
 	struct nk_context *ctx = app->ctx;
 
@@ -418,7 +423,7 @@ void show_editor_bg_window(lfr_graph_t *graph, const lfr_editor_t *app) {
 		draw_flow_link_lines(app, graph, canvas);
 		draw_data_link_lines(app, graph, canvas);
 		draw_link_selection_curve(app, graph, canvas);
-		show_node_creation_contextual_menu(ctx, graph);
+		show_node_creation_contextual_menu(vm, ctx, graph);
 	}
 	nk_end(ctx);
 }
@@ -528,7 +533,7 @@ void draw_link_selection_curve(const lfr_editor_t *app, const lfr_graph_t *graph
 /*
 Show contexual menu for creating new nodes.
 */
-void show_node_creation_contextual_menu(struct nk_context* ctx, lfr_graph_t *graph) {
+void show_node_creation_contextual_menu(const lfr_vm_t *vm, struct nk_context* ctx, lfr_graph_t *graph) {
 	assert(ctx && graph);
 
 	// Open context menu - or early out if it can't be opened
@@ -539,7 +544,7 @@ void show_node_creation_contextual_menu(struct nk_context* ctx, lfr_graph_t *gra
 	// List all available options
 	nk_layout_row_dynamic(ctx, 25, 1);
 	for (int i = 0; i < lfr_no_core_instructions; i++) {
-		const char* name = lfr_get_instruction_name(i);
+		const char* name = lfr_get_instruction_name(i, vm);
 		if ( nk_contextual_item_label(ctx, name, NK_TEXT_LEFT)) {
 			// Create node
 			lfr_node_id_t id = lfr_add_node(i, graph);

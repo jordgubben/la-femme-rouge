@@ -38,6 +38,12 @@ typedef enum lfr_instruction_ {
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
+bool lfr_is_core_instruction(unsigned bytecode) { return bytecode <= 0xff; }
+
+// Forward declarations
+struct lfr_vm_;
+typedef struct lfr_vm_ lfr_vm_t;
+
 
 //// LFR Node ////
 
@@ -45,7 +51,7 @@ typedef struct lfr_node_id_ { unsigned id; } lfr_node_id_t;
 
 enum {lfr_signature_size = 8};
 typedef struct lfr_node_ {
-	lfr_instruction_e instruction;
+	unsigned instruction;
 	struct {
 		lfr_node_id_t node;
 		unsigned int slot;
@@ -67,18 +73,18 @@ typedef struct lfr_node_table_ {
 } lfr_node_table_t;
 
 // Node CRUD
-lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e, lfr_node_table_t*);
+lfr_node_id_t lfr_insert_node_into_table(unsigned instruction, lfr_node_table_t*);
 unsigned lfr_get_node_index(lfr_node_id_t, const lfr_node_table_t *);
 lfr_vec2_t lfr_get_node_position(lfr_node_id_t, const lfr_node_table_t *);
-lfr_variant_t lfr_get_fixed_input_value(lfr_node_id_t, unsigned slot, const lfr_node_table_t *);
-lfr_variant_t lfr_get_default_output_value(lfr_node_id_t, unsigned, const lfr_node_table_t *);
+lfr_variant_t lfr_get_fixed_input_value(lfr_node_id_t, unsigned slot, const lfr_vm_t *, const lfr_node_table_t *);
+lfr_variant_t lfr_get_default_output_value(lfr_node_id_t, unsigned, const lfr_vm_t *, const lfr_node_table_t *);
 void lfr_set_node_position(lfr_node_id_t, lfr_vec2_t, lfr_node_table_t *);
 void lfr_set_fixed_input_value(lfr_node_id_t, unsigned slot, lfr_variant_t, lfr_node_table_t *);
 void lfr_set_default_output_value(lfr_node_id_t, unsigned slot, lfr_variant_t, lfr_node_table_t *);
 void lfr_remove_node_from_table(lfr_node_id_t, lfr_node_table_t *);
 
 // Node serialization
-int lfr_save_nodes_in_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
+int lfr_save_nodes_in_table_to_file(const lfr_node_table_t*, const lfr_vm_t *, FILE * restrict stream);
 int lfr_save_data_links_in_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
 int lfr_save_fixed_values_in_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
 
@@ -104,6 +110,7 @@ void lfr_term_graph(lfr_graph_t *);
 
 // Node CRUD (for graph)
 lfr_node_id_t lfr_add_node(lfr_instruction_e, lfr_graph_t *);
+lfr_node_id_t lfr_add_custom_node(unsigned bytecode, lfr_graph_t *);
 void lfr_remove_node(lfr_node_id_t, lfr_graph_t *);
 
 // Flow link CRUD
@@ -120,8 +127,8 @@ void lfr_unlink_input_data(lfr_node_id_t, unsigned, lfr_graph_t*);
 void lfr_unlink_output_data(lfr_node_id_t, unsigned, lfr_graph_t*);
 
 // Graph serialization
-void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph);
-int lfr_save_graph_to_file(const lfr_graph_t *, FILE * restrict stream);
+void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t*, lfr_graph_t *graph);
+int lfr_save_graph_to_file(const lfr_graph_t *, const lfr_vm_t *, FILE * restrict stream);
 int lfr_save_flow_links_to_file(const lfr_graph_t *, FILE * restrict stream);
 
 
@@ -136,9 +143,14 @@ typedef struct lfr_instruction_def_ {
 	} input_signature[lfr_signature_size], output_signature[lfr_signature_size];
 } lfr_instruction_def_t;
 
-const char* lfr_get_instruction_name(lfr_instruction_e);
-lfr_instruction_e lfr_find_instruction_from_name(const char* name);
-const struct lfr_instruction_def_* lfr_get_instruction(lfr_instruction_e);
+typedef struct lfr_vm_ {
+	const lfr_instruction_def_t *custom_instructions;
+	unsigned num_custom_instructions;
+} lfr_vm_t;
+
+const char* lfr_get_instruction_name(lfr_instruction_e, const lfr_vm_t *);
+lfr_instruction_e lfr_find_instruction_from_name(const char* name, const lfr_vm_t *);
+const struct lfr_instruction_def_* lfr_get_instruction(lfr_instruction_e, const lfr_vm_t *);
 
 
 //// LFR Node state ////
@@ -174,14 +186,16 @@ typedef struct lfr_graph_state_ {
 } lfr_graph_state_t;
 
 
-lfr_variant_t lfr_get_input_value(lfr_node_id_t, unsigned slot, const lfr_graph_t*, const lfr_graph_state_t*);
-lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned slot, const lfr_graph_t*, const lfr_graph_state_t*);
+lfr_variant_t lfr_get_input_value(lfr_node_id_t, unsigned slot,
+	const lfr_vm_t *, const lfr_graph_t*, const lfr_graph_state_t*);
+lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned slot,
+	const lfr_vm_t *, const lfr_graph_t*, const lfr_graph_state_t*);
 
 
 //// LFR script execution ////
 
 void lfr_schedule(lfr_node_id_t, const lfr_graph_t *, lfr_graph_state_t *);
-int lfr_step(const lfr_graph_t *, lfr_graph_state_t *);
+int lfr_step(const lfr_vm_t *, const lfr_graph_t *, lfr_graph_state_t *);
 
 #endif
 
@@ -243,7 +257,7 @@ Execute topmost scheduled node (if any) from the script executions todo-list.
 
 Returns number of scheduled nodes, including the one executed.
 **/
-int lfr_step(const lfr_graph_t *graph, lfr_graph_state_t *state) {
+int lfr_step(const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *state) {
 	if (!state->num_schedueled_nodes) { return 0; };
 
 	// Find the right node
@@ -257,11 +271,11 @@ int lfr_step(const lfr_graph_t *graph, lfr_graph_state_t *state) {
 
 		// Get Input
 		for (int i = 0; i < lfr_signature_size; i++) {
-			input[i] = lfr_get_input_value(node_id, i, graph, state);
+			input[i] = lfr_get_input_value(node_id, i, vm, graph, state);
 		}
 
 		// Process instruction
-		lfr_get_instruction(head->instruction)->func(node_id, input, output, graph);
+		lfr_get_instruction(head->instruction, vm)->func(node_id, input, output, graph);
 
 		// Update node state with new result data
 		unsigned state_index = lfr_insert_node_state_at(node_id, &graph->nodes, &state->nodes);
@@ -306,11 +320,27 @@ void lfr_term_graph(lfr_graph_t *graph) {
 
 
 /**
-Add a node with the given instruction to the graph.
+Add a node with the given *core* instruction to the graph.
 
 Node is positioned to the right of the last node in the table.
 **/
 lfr_node_id_t lfr_add_node(lfr_instruction_e inst, lfr_graph_t *graph) {
+	assert(inst < lfr_no_core_instructions);
+	lfr_node_id_t id = lfr_insert_node_into_table(inst, &graph->nodes);
+	graph->nodes.position[graph->nodes.num_rows - 1] = graph->next_node_pos;
+	graph->next_node_pos.x += 310;
+	return id;
+}
+
+
+/**
+Add a node with the given *custom* instruction to the graph.
+
+Same layout system as core nodes.
+**/
+lfr_node_id_t lfr_add_custom_node(unsigned inst, lfr_graph_t *graph) {
+	assert(graph);
+	inst += 1 << 8;
 	lfr_node_id_t id = lfr_insert_node_into_table(inst, &graph->nodes);
 	graph->nodes.position[graph->nodes.num_rows - 1] = graph->next_node_pos;
 	graph->next_node_pos.x += 310;
@@ -495,7 +525,7 @@ void lfr_unlink_output_data(lfr_node_id_t out_node, unsigned out_slot, lfr_graph
 /**
 Load graph content from (tab separated) file.
 **/
-void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
+void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t *vm, lfr_graph_t *graph) {
 	char line_buf[1024];
 	while (fgets(line_buf, 1024, stream)) {
 		// Get line type
@@ -513,7 +543,7 @@ void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
 			sscanf(line_buf, "node #%u %s (%f,%f)", &expected_id.id, inst_buf, &pos.x, &pos.y);
 
 			// Add instruction
-			lfr_instruction_e instruction = lfr_find_instruction_from_name(inst_buf);
+			lfr_instruction_e instruction = lfr_find_instruction_from_name(inst_buf, vm);
 			lfr_node_id_t new_id = lfr_insert_node_into_table(instruction, &graph->nodes);
 			assert(T_SAME_ID(new_id, expected_id));
 			lfr_set_node_position(new_id, pos, &graph->nodes);
@@ -544,11 +574,11 @@ void lfr_load_graph_from_file(FILE * restrict stream, lfr_graph_t *graph) {
 /**
 Dump graph to file in a parsable (tab-separated) format.
 **/
-int lfr_save_graph_to_file(const lfr_graph_t *graph, FILE * restrict stream) {
+int lfr_save_graph_to_file(const lfr_graph_t *graph, const lfr_vm_t *vm, FILE * restrict stream) {
 	int char_count = 0;
 
 	// Dump things
-	char_count += lfr_save_nodes_in_table_to_file(&graph->nodes, stream);
+	char_count += lfr_save_nodes_in_table_to_file(&graph->nodes, vm, stream);
 	char_count += lfr_save_data_links_in_table_to_file(&graph->nodes, stream);
 	char_count += lfr_save_fixed_values_in_table_to_file(&graph->nodes, stream);
 	char_count += lfr_save_flow_links_to_file(graph, stream);
@@ -615,7 +645,8 @@ lfr_vec2_t lfr_get_node_position(lfr_node_id_t id, const lfr_node_table_t *table
 /**
 Get (fixed) input value for given node and slot.
 **/
-lfr_variant_t lfr_get_fixed_input_value(lfr_node_id_t id, unsigned slot, const lfr_node_table_t *table) {
+lfr_variant_t lfr_get_fixed_input_value(
+		lfr_node_id_t id, unsigned slot, const lfr_vm_t *vm, const lfr_node_table_t *table) {
 	assert(slot < lfr_signature_size);
 
 	unsigned index = T_INDEX(*table, id);
@@ -628,7 +659,7 @@ lfr_variant_t lfr_get_fixed_input_value(lfr_node_id_t id, unsigned slot, const l
 
 	// Instructions default value
 	lfr_instruction_e inst = table->node[index].instruction;
-	const lfr_instruction_def_t *inst_def = lfr_get_instruction(inst);
+	const lfr_instruction_def_t *inst_def = lfr_get_instruction(inst, vm);
 	return inst_def->input_signature[slot].data;
 }
 
@@ -636,7 +667,8 @@ lfr_variant_t lfr_get_fixed_input_value(lfr_node_id_t id, unsigned slot, const l
 /**
 Get the default value for the given node and slot.
 **/
-lfr_variant_t lfr_get_default_output_value(lfr_node_id_t id, unsigned slot, const lfr_node_table_t *table) {
+lfr_variant_t lfr_get_default_output_value(
+		lfr_node_id_t id, unsigned slot, const lfr_vm_t *vm, const lfr_node_table_t *table) {
 	assert(slot < lfr_signature_size);
 
 	unsigned index = T_INDEX(*table, id);
@@ -649,7 +681,7 @@ lfr_variant_t lfr_get_default_output_value(lfr_node_id_t id, unsigned slot, cons
 
 	// Instructions default value
 	lfr_instruction_e inst = table->node[index].instruction;
-	const lfr_instruction_def_t *inst_def = lfr_get_instruction(inst);
+	const lfr_instruction_def_t *inst_def = lfr_get_instruction(inst, vm);
 	return inst_def->output_signature[slot].data;
 }
 
@@ -709,7 +741,7 @@ void lfr_remove_node_from_table(lfr_node_id_t  id, lfr_node_table_t *table) {
 /**
 Print nodes in table onto file stream in a parser friendly (tab separated) format.
 **/
-int lfr_save_nodes_in_table_to_file(const lfr_node_table_t *table, FILE * restrict stream) {
+int lfr_save_nodes_in_table_to_file(const lfr_node_table_t *table, const lfr_vm_t *vm,FILE * restrict stream) {
 	int char_count = 0;
 
 	T_FOR_ROWS(index, *table) {
@@ -720,7 +752,7 @@ int lfr_save_nodes_in_table_to_file(const lfr_node_table_t *table, FILE * restri
 		char_count += fprintf(stream, "#%u\t", node_id.id);
 
 		// Instruction
-		char_count += fprintf(stream, "%s\t", lfr_get_instruction_name(table->node[index].instruction));
+		char_count += fprintf(stream, "%s\t", lfr_get_instruction_name(table->node[index].instruction, vm));
 
 		// Position
 		lfr_vec2_t pos = lfr_get_node_position(node_id, table);
@@ -910,33 +942,40 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 /**
 Get entire (code) instruction definition.
 **/
-const lfr_instruction_def_t* lfr_get_instruction(lfr_instruction_e inst) {
-	assert(inst < lfr_no_core_instructions);
-	return &lfr_core_instructions_[inst];
+const lfr_instruction_def_t* lfr_get_instruction(lfr_instruction_e inst, const lfr_vm_t *vm) {
+	if (inst < lfr_no_core_instructions) {
+		return &lfr_core_instructions_[inst];
+	} else {
+		inst -= 1<<8;
+		assert(inst < vm->num_custom_instructions);
+		return &vm->custom_instructions[inst];
+	}
 }
 
 
 /**
 Get name of (core) instruction.
 **/
-const char* lfr_get_instruction_name(lfr_instruction_e inst) {
-	return lfr_get_instruction(inst)->name;
+const char* lfr_get_instruction_name(lfr_instruction_e inst, const lfr_vm_t *vm) {
+	return lfr_get_instruction(inst, vm)->name;
 }
 
 
 /**
 Get (core) instruction code from name.
+
+TODO: Also search custom instructions
 **/
-lfr_instruction_e lfr_find_instruction_from_name(const char* name) {
+lfr_instruction_e lfr_find_instruction_from_name(const char* name, const lfr_vm_t *vm) {
 	for (int i = 0; i < lfr_no_core_instructions; i++) {
-		if (strcmp(name, lfr_get_instruction_name(i)) == 0) {
+		if (strcmp(name, lfr_get_instruction_name(i, vm)) == 0) {
 			return i;
 		}
 	}
 
 	// Warn, then fallback to intruction that does not do much at all
 	const lfr_instruction_e fallback = lfr_print_own_id;
-	printf("Unknown instruction '%s' substituted by '%s'\n", name, lfr_get_instruction_name(fallback));
+	printf("Unknown instruction '%s' substituted by '%s'\n", name, lfr_get_instruction_name(fallback, vm));
 	return fallback;
 }
 
@@ -980,7 +1019,7 @@ bool lfr_node_state_table_contains(lfr_node_id_t id, const lfr_node_state_table_
 Get current value for the given node and *input* slot.
 **/
 lfr_variant_t lfr_get_input_value(lfr_node_id_t id, unsigned slot,
-		const lfr_graph_t *graph, const lfr_graph_state_t *state) {
+		const lfr_vm_t *vm, const lfr_graph_t *graph, const lfr_graph_state_t *state) {
 	assert(graph && state);
 	assert(T_HAS_ID(graph->nodes, id));
 	assert(slot < lfr_signature_size);
@@ -991,11 +1030,11 @@ lfr_variant_t lfr_get_input_value(lfr_node_id_t id, unsigned slot,
 	lfr_node_id_t out_node = node->input_data[slot].node;
 	if (out_node.id) {
 		unsigned out_slot = node->input_data[slot].slot;
-		return lfr_get_output_value(out_node, out_slot, graph, state);
+		return lfr_get_output_value(out_node, out_slot, vm, graph, state);
 	}
 
 	// Otherwise return fixed value from (imutable) graph
-	return lfr_get_fixed_input_value(id, slot, &graph->nodes);
+	return lfr_get_fixed_input_value(id, slot, vm, &graph->nodes);
 }
 
 
@@ -1003,7 +1042,7 @@ lfr_variant_t lfr_get_input_value(lfr_node_id_t id, unsigned slot,
 Get current value for the given node and *output* slot.
 **/
 lfr_variant_t lfr_get_output_value(lfr_node_id_t id, unsigned slot,
-		const lfr_graph_t *graph, const lfr_graph_state_t *state) {
+		const lfr_vm_t *vm, const lfr_graph_t *graph, const lfr_graph_state_t *state) {
 	assert(graph && state);
 	assert(slot < lfr_signature_size);
 
@@ -1015,7 +1054,7 @@ lfr_variant_t lfr_get_output_value(lfr_node_id_t id, unsigned slot,
 	}
 
 	// Otherwise return default
-	return lfr_get_default_output_value(id, slot, &graph->nodes);
+	return lfr_get_default_output_value(id, slot, vm, &graph->nodes);
 }
 
 #undef T_HAS_ID
