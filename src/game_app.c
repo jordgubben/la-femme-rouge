@@ -134,13 +134,38 @@ typedef enum game_instructions_ {
 	gi_no_instructions // Not an instruction
 } game_instructions_e;
 
-void get_actor_position_proc(lfr_node_id_t node_id,
+/**
+Script instruction: Set position of the given actor.
+**/
+void set_actor_position_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
 		const lfr_graph_t* graph) {
 	assert(custom_data);
 	population_t *pop = custom_data;
 
+	// Find actor
+	int actor_index = input[0].int_value;
+	actor_index %= num_actors_in_world;
+
+	// Get new position
+	lfr_vec2_t in_pos = input[1].vec2_value;
+
+	// Set new position
+	pop->actor_positions[actor_index] = (vec2_t) { in_pos.x, in_pos.y };
+}
+
+
+/**
+Script instruction: Get position of the given actor.
+**/
+void get_actor_position_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
+		const lfr_graph_t* graph) {
+	assert(custom_data);
+	population_t *pop = custom_data;
+	
 	// Find actor position
 	int actor_index = input[0].int_value;
 	actor_index %= num_actors_in_world;
@@ -150,15 +175,9 @@ void get_actor_position_proc(lfr_node_id_t node_id,
 	output[0] = lfr_vec2_xy(pos.x, pos.y);
 }
 
-void do_nothing_proc(lfr_node_id_t node_id,
-		lfr_variant_t input[], lfr_variant_t output[],
-		void *custom_data,
-		const lfr_graph_t* graph) {
-	// TODO: Replace with implementations that do something
-}
 
 lfr_instruction_def_t game_instructions[gi_no_instructions] = {
-	{"set_actor_position", do_nothing_proc,
+	{"set_actor_position", set_actor_position_proc,
 		{
 			{"ACTOR", {lfr_int_type, .int_value = 0 }},
 			{"POS", (lfr_variant_t) { lfr_vec2_type, .vec2_value = { 0,0}}},
