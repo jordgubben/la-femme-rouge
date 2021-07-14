@@ -46,8 +46,21 @@ void lfr_show_debug(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
 #endif // LFR_EDITOR_H
 
 #ifdef LFR_EDITOR_IMPLEMENTATION
+
+// Individual node windows
 void show_individual_node_window(lfr_node_id_t, const lfr_vm_t*, lfr_graph_t*, lfr_graph_state_t*, lfr_editor_t*);
+void show_node_main_flow_section(lfr_node_id_t, lfr_graph_t *, struct nk_context *);
+void show_node_input_slots_group(lfr_node_id_t,
+	const lfr_vm_t*, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
+void show_node_output_slots_group(lfr_node_id_t,
+	const lfr_vm_t *, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
+
+// Lines between nodes
 void show_editor_bg_window(lfr_graph_t *, const lfr_vm_t*, const lfr_editor_t *);
+void draw_flow_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
+void draw_data_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
+void draw_link_selection_curve(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
+void show_node_creation_contextual_menu(const lfr_vm_t *, struct nk_context *, lfr_graph_t *);
 
 
 /**
@@ -85,13 +98,12 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 /**
 Show the window for an individual graph node.
 **/
-void show_individual_node_window(lfr_node_id_t node_id,
-		const lfr_vm_t *vm, lfr_graph_t *graph, lfr_graph_state_t *state, lfr_editor_t *app) {
-	void show_node_main_flow_section(lfr_node_id_t, lfr_graph_t *, struct nk_context *);
-	void show_node_input_slots_group(lfr_node_id_t,
-		const lfr_vm_t*, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
-	void show_node_output_slots_group(lfr_node_id_t,
-		const lfr_vm_t *vm, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
+void show_individual_node_window(
+		lfr_node_id_t node_id,
+		const lfr_vm_t *vm,
+		lfr_graph_t *graph,
+		lfr_graph_state_t *state,
+		lfr_editor_t *app) {
 	assert(graph && state && app);
 	struct nk_context *ctx = app->ctx;
 
@@ -409,10 +421,6 @@ void show_node_output_slots_group(
 Show background window with flow lines, link selection and context menu for creating new nodes.
 **/
 void show_editor_bg_window(lfr_graph_t *graph, const lfr_vm_t *vm, const lfr_editor_t *app) {
-	void draw_flow_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
-	void draw_data_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
-	void draw_link_selection_curve(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
-	void show_node_creation_contextual_menu(const lfr_vm_t *, struct nk_context *, lfr_graph_t *);
 	assert(graph && app);
 	struct nk_context *ctx = app->ctx;
 
