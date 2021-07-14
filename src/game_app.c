@@ -160,6 +160,21 @@ int main( int argc, char** argv) {
 	lfr_graph_state_t graph_state = {0};
 	lfr_editor_t editor = {win, ctx};
 
+	// Set up LFR example
+	// (keep things simmple by skipping load from file)
+	lfr_node_id_t n1 = lfr_add_node(lfr_print_own_id, &graph);
+	lfr_node_id_t n2 = lfr_add_node(lfr_randomize_number, &graph);
+	lfr_node_id_t n3 = lfr_add_node(lfr_randomize_number, &graph);
+	lfr_node_id_t n4 = lfr_add_node(lfr_add, &graph);
+	lfr_node_id_t n5 = lfr_add_node(lfr_print_value, &graph);
+	lfr_link_nodes(n1, n2, &graph);
+	lfr_link_nodes(n2, n3, &graph);
+	lfr_link_nodes(n3, n4, &graph);
+	lfr_link_nodes(n4, n5, &graph);
+	lfr_link_data(n2, 0, n4, 0, &graph);
+	lfr_link_data(n3, 0, n4, 1, &graph);
+	lfr_link_data(n4, 0, n5, 0, &graph);
+
 	// Script stepping timer
 	double last_step_time = glfwGetTime();
 	const double time_between_steps = 1.f;
