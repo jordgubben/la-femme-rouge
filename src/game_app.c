@@ -160,8 +160,19 @@ int main( int argc, char** argv) {
 	lfr_graph_state_t graph_state = {0};
 	lfr_editor_t editor = {win, ctx};
 
+	// Script stepping timer
+	double last_step_time = glfwGetTime();
+	const double time_between_steps = 1.f;
+
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(win)) {
+		// Take a step through the graph now and then
+		double now = glfwGetTime();
+		while (now  > last_step_time + time_between_steps) {
+			last_step_time += time_between_steps;
+			lfr_step(&graph, &graph_state);
+		}
+
 		// Prep UI
 		nk_glfw3_new_frame(&glfw);
 
