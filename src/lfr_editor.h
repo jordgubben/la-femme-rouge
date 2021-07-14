@@ -34,12 +34,14 @@ typedef struct lfr_editor_ {
 	lfr_node_id_t removal_of_node_requested;
 
 	// Layout
+	struct nk_rect outer_bounds;
 	float input_ys[lfr_node_table_max_rows][lfr_signature_size];
 	lfr_vec2_t output_positions[lfr_node_table_max_rows][lfr_signature_size];
 } lfr_editor_t;
 
 
 // Editor
+void lfr_init_editor(struct nk_rect bounds, GLFWwindow*, struct nk_context*, lfr_editor_t*);
 void lfr_show_editor(lfr_editor_t * app, const lfr_vm_t*, lfr_graph_t *, lfr_graph_state_t *);
 void lfr_show_debug(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
 
@@ -61,6 +63,16 @@ void draw_flow_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_c
 void draw_data_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
 void draw_link_selection_curve(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
 void show_node_creation_contextual_menu(const lfr_vm_t *, struct nk_context *, lfr_graph_t *);
+
+
+/**
+Init editor.
+**/
+void lfr_init_editor(struct nk_rect bounds, GLFWwindow *win, struct nk_context *ctx, lfr_editor_t *editor) {
+	editor->window = win;
+	editor->ctx = ctx;
+	editor->outer_bounds = bounds;
+}
 
 
 /**
@@ -457,7 +469,7 @@ void show_editor_bg_window(lfr_graph_t *graph, const lfr_vm_t *vm, const lfr_edi
 	assert(graph && app);
 	struct nk_context *ctx = app->ctx;
 
-	if (nk_begin(ctx, bg_window_title, nk_rect(0,0, 1024, 768), NK_WINDOW_BACKGROUND)) {
+	if (nk_begin(ctx, bg_window_title, app->outer_bounds, NK_WINDOW_BACKGROUND)) {
 		struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
 
 		nk_fill_rect(canvas, nk_window_get_bounds(ctx), 0.f, nk_rgb(20,20,20));

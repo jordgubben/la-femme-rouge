@@ -201,7 +201,7 @@ int main( int argc, char** argv) {
 	// Init world population
 	population_t pop = {0};
 	for (int i = 0; i < num_actors_in_world; i++) {
-		pop.actor_positions[i] = (vec2_t) {0.5, 0.5 - 0.25 * i};
+		pop.actor_positions[i] = (vec2_t) {-0.75 + 0.5 * i, 0.0};
 	}
 
 	// Initialize window (Full HD)
@@ -245,7 +245,8 @@ int main( int argc, char** argv) {
 	lfr_graph_t graph = {0};
 	lfr_init_graph(&graph);
 	lfr_graph_state_t graph_state = {0};
-	lfr_editor_t editor = {win, ctx};
+	lfr_editor_t editor = {0};
+	lfr_init_editor(nk_rect(0,0, 1920, 1080/2), win, ctx, &editor);
 
 	// Set up LFR example
 	// (keep things simmple by skipping load from file)
@@ -281,14 +282,18 @@ int main( int argc, char** argv) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		CHECK_GL_OR("Prepare rendering", goto quit);
 
+		// Render actors to the lower half of the screen
+		glViewport(0, 0, width, height/2);
+
 		// Render some actors
 		// (So that the custom controls have something to manipulate)
 		for (int i = 0; i < num_actors_in_world; i++) {
 			vec2_t pos = pop.actor_positions[i];
+			const float r = ((float) height *0.5)/ ((float)width);
 			const float s = 0.2;
 			const mat4_t transform = {
 				s, 0, 0, pos.x,
-				0, s, 0, pos.y,
+				0, s/r, 0, pos.y/r,
 				0, 0,.5, 0,
 				0, 0, 0, 1
 			};

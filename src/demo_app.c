@@ -96,11 +96,10 @@ int main( int argc, char** argv) {
 Run a single window application, where a graph could be rendered.
 **/
 void run_gui(const lfr_vm_t *vm, lfr_graph_t* graph, lfr_graph_state_t *state) {
-	lfr_editor_t app = {0};
-
 	// Initialize window application
-	if(!init_gl_app("LFR Editor example", 1024,768, &app.window)) {
-		term_gl_app(app.window);
+	GLFWwindow *window;
+	if(!init_gl_app("LFR Editor example", 1024,768, &window)) {
+		term_gl_app(window);
 		return;
 	}
 
@@ -109,13 +108,16 @@ void run_gui(const lfr_vm_t *vm, lfr_graph_t* graph, lfr_graph_state_t *state) {
 
 	// Init Nuklear
 	struct nk_glfw glfw = {0};
-	struct nk_context *ctx = nk_glfw3_init(&glfw, app.window, NK_GLFW3_INSTALL_CALLBACKS);
-	app.ctx = ctx;
+	struct nk_context *ctx = nk_glfw3_init(&glfw, window, NK_GLFW3_INSTALL_CALLBACKS);
 	{
 		struct nk_font_atlas *atlas;
 		nk_glfw3_font_stash_begin(&glfw, &atlas);
 		nk_glfw3_font_stash_end(&glfw);
 	}
+
+	// Init editor (cover whole screen)
+	lfr_editor_t app = {0};
+	lfr_init_editor(nk_rect(0,0,1024, 768), window, ctx, &app);
 
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(app.window)) {
