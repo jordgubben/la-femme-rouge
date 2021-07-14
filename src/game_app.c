@@ -4,8 +4,11 @@ LFR Scripting "game" used to demonstrate how to integrate LFR with an existing a
 
 // LIBC
 #include <assert.h>
+#include <float.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 // OpenGL
 #include "basic_gl.h"
@@ -25,6 +28,11 @@ LFR Scripting "game" used to demonstrate how to integrate LFR with an existing a
 // Render Nuklear with OpenGL
 #define MAX_VERTEX_BUFFER 512 * 1024
 #define MAX_ELEMENT_BUFFER 128 * 1024
+
+// LFR
+#include "lfr.h"
+#include "lfr_editor.h"
+
 
 // Shader program
 
@@ -146,18 +154,19 @@ int main( int argc, char** argv) {
 		nk_glfw3_font_stash_end(&glfw);
 	}
 
+	// Setup LFR
+	lfr_graph_t graph = {0};
+	lfr_init_graph(&graph);
+	lfr_graph_state_t graph_state = {0};
+	lfr_editor_t editor = {win, ctx};
+
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(win)) {
 		// Prep UI
 		nk_glfw3_new_frame(&glfw);
 
-		// Minimal example window
-		// (just get something on screen)
-		if (nk_begin(ctx, "Example window", nk_rect(50, 50, 600, 200), NK_WINDOW_TITLE)) {
-			nk_layout_row_dynamic(ctx, 0, 1);
-			nk_label(ctx, "~ Example lable ~", NK_TEXT_CENTERED);
-		}
-		nk_end(ctx);
+		// LFR editor
+		lfr_show_editor(&editor, &graph, &graph_state);
 
 		// Prepare rendering
 		int width, height;
@@ -190,6 +199,7 @@ int main( int argc, char** argv) {
 
 	// Terminate application
 	quit:
+	lfr_term_graph(&graph);
 	nk_glfw3_shutdown(&glfw);
 	delete_mesh(&triangle);
 	delete_mesh(&unit_quad);
@@ -278,6 +288,12 @@ void delete_mesh(gl_mesh_t *mesh) {
 	CHECK_GL("Delete mesh");
 }
 
+
+#define LFR_IMPLEMENTATION
+#include "lfr.h"
+
+#define LFR_EDITOR_IMPLEMENTATION
+#include "lfr_editor.h"
 
 /********************************************************************************
 MIT License
