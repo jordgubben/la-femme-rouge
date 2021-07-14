@@ -326,6 +326,12 @@ void show_node_input_slots_group(
 		case lfr_nil_type: {
 			nk_label(ctx, "---", NK_TEXT_RIGHT);
 		} break;
+		case lfr_int_type: {
+			int new_value = nk_propertyi(ctx, "#=", INT_MIN, data.int_value, INT_MAX, 1, 1);
+			if (data.int_value != new_value) {
+				lfr_set_fixed_input_value(node_id, slot, lfr_int(new_value), &graph->nodes);
+			}
+		} break;
 		case lfr_float_type: {
 			float new_value = nk_propertyf(ctx, "#=", FLT_MIN, data.float_value, FLT_MAX, 1, 1);
 			if (data.float_value != new_value) {
@@ -425,6 +431,9 @@ void show_node_output_slots_group(
 		switch (data.type) {
 		case lfr_nil_type: {
 			snprintf(label_buf, 32, "---");
+		} break;
+		case lfr_int_type: {
+			snprintf(label_buf, 32, "%d", data.int_value);
 		} break;
 		case lfr_vec2_type: {
 			snprintf(label_buf, 32, "%.1f,%.1f", data.vec2_value.x, data.vec2_value.y);

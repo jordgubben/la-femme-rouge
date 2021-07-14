@@ -10,6 +10,7 @@ typedef struct lfr_vec2_ { float x,y; } lfr_vec2_t;
 
 typedef enum lfr_variant_type_ {
 	lfr_nil_type,
+	lfr_int_type,
 	lfr_float_type,
 	lfr_vec2_type,
 	lfr_no_core_types
@@ -24,6 +25,7 @@ typedef struct lfr_variant_ {
 	};
 } lfr_variant_t;
 
+lfr_variant_t lfr_int(int v) { return (lfr_variant_t) {lfr_int_type, .int_value = v}; }
 lfr_variant_t lfr_float(float v) { return (lfr_variant_t) {lfr_float_type, .float_value = v}; }
 lfr_variant_t lfr_vec2(lfr_vec2_t v) { return (lfr_variant_t) { lfr_vec2_type, .vec2_value = v}; }
 lfr_variant_t lfr_vec2_xy(float x, float y) { return lfr_vec2((lfr_vec2_t){x,y}); }
@@ -903,6 +905,7 @@ void lfr_print_value_proc(lfr_node_id_t node_id,
 
 	switch(input[0].type) {
 	case lfr_nil_type: { printf("nil\n");} break;
+	case lfr_int_type: { printf("%d", input[0].int_value); } break;
 	case lfr_float_type: { printf("%f\n", input[0].float_value); } break;
 	case lfr_vec2_type: { printf("(%f,%f)\n", input[0].vec2_value.x, input[0].vec2_value.y); } break;
 	case lfr_no_core_types: { assert(0 && "Not a type"); } break;

@@ -5,6 +5,7 @@ LFR Scripting "game" used to demonstrate how to integrate LFR with an existing a
 // LIBC
 #include <assert.h>
 #include <float.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -128,11 +129,14 @@ void do_nothing_proc(lfr_node_id_t node_id,
 
 lfr_instruction_def_t game_instructions[gi_no_instructions] = {
 	{"set_actor_position", do_nothing_proc,
-		{{"POS", (lfr_variant_t) { lfr_vec2_type, .vec2_value = { 0,0}}},},
+		{
+			{"ACTOR", {lfr_int_type, .int_value = 0 }},
+			{"POS", (lfr_variant_t) { lfr_vec2_type, .vec2_value = { 0,0}}},
+		},
 		{},
 	},
 	{"get_actor_position", do_nothing_proc,
-		{},
+		{{"ACTOR", {lfr_int_type, .int_value = 0 }}},
 		{{"POS", (lfr_variant_t) { lfr_vec2_type, .vec2_value = { 0,0}}},},
 	},
 };
@@ -193,7 +197,7 @@ int main( int argc, char** argv) {
 	lfr_node_id_t n1 = lfr_add_custom_node(gi_get_actor_position, &graph);
 	lfr_node_id_t n2 = lfr_add_custom_node(gi_set_actor_position, &graph);
 	lfr_link_nodes(n1, n2, &graph);
-	lfr_link_data(n1, 0, n2, 0, &graph);
+	lfr_link_data(n1, 0, n2, 1, &graph);
 
 	// Script stepping timer
 	double last_step_time = glfwGetTime();

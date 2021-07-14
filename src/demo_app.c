@@ -4,6 +4,7 @@ LFR Scripting demo app.
 
 // LIBC
 #include <assert.h>
+#include <limits.h>
 #include <string.h>
 #include <stdbool.h>
 #include <float.h>
