@@ -319,16 +319,28 @@ void show_node_input_slots_group(
 		app->input_ys[node_index][slot] = panel->at_y + 15/2;
 
 		// Current input value (linked or fixed)
+		// (Set a new value if it's changed by the UI, and breaks any link))
 		nk_layout_row_dynamic(ctx, 0, 1);
 		const lfr_variant_t data = lfr_get_input_value(node_id, slot, vm, graph, state);
-		if (data.type == lfr_float_type) {
-			// Set a new value if it's changed by the UI (breaks link)
+		switch(data.type) {
+		case lfr_nil_type: {
+			nk_label(ctx, "---", NK_TEXT_RIGHT);
+		} break;
+		case lfr_float_type: {
 			float new_value = nk_propertyf(ctx, "#=", FLT_MIN, data.float_value, FLT_MAX, 1, 1);
 			if (data.float_value != new_value) {
 				lfr_set_fixed_input_value(node_id, slot, lfr_float(new_value), &graph->nodes);
 			}
-		} else {
-			// TODO: Support other types
+		} break;
+		case lfr_vec2_type: {
+			// Set a new value if it's changed by the UI (breaks link)
+			float new_x = nk_propertyf(ctx, "#=", FLT_MIN, data.vec2_value.x, FLT_MAX, 1, 1);
+			float new_y = nk_propertyf(ctx, "#=", FLT_MIN, data.vec2_value.y, FLT_MAX, 1, 1);
+			if (data.vec2_value.x != new_x || data.vec2_value.y != new_y) {
+				lfr_set_fixed_input_value(node_id, slot, lfr_vec2_xy(new_x, new_y), &graph->nodes);
+			}
+		} break;
+		default:
 			nk_label(ctx, "???", NK_TEXT_RIGHT);
 		}
 	}
@@ -409,8 +421,20 @@ void show_node_output_slots_group(
 
 		// Value
 		nk_layout_row_dynamic(ctx, 0, 1);
-		char label_buf[16];
-		snprintf(label_buf, 16, "(%.3f)", data.float_value);
+		char label_buf[32];
+		switch (data.type) {
+		case lfr_nil_type: {
+			snprintf(label_buf, 32, "---");
+		} break;
+		case lfr_vec2_type: {
+			snprintf(label_buf, 32, "%.1f,%.1f", data.vec2_value.x, data.vec2_value.y);
+		} break;
+		case lfr_float_type: {
+			snprintf(label_buf, 32, "(%.3f)", data.float_value);
+		} break;
+		default:
+			snprintf(label_buf, 32, "???");
+		}
 		nk_label(ctx, label_buf, NK_TEXT_RIGHT);
 	}
 	nk_group_end(ctx);

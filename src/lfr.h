@@ -25,6 +25,8 @@ typedef struct lfr_variant_ {
 } lfr_variant_t;
 
 lfr_variant_t lfr_float(float v) { return (lfr_variant_t) {lfr_float_type, .float_value = v}; }
+lfr_variant_t lfr_vec2(lfr_vec2_t v) { return (lfr_variant_t) { lfr_vec2_type, .vec2_value = v}; }
+lfr_variant_t lfr_vec2_xy(float x, float y) { return lfr_vec2((lfr_vec2_t){x,y}); }
 
 //// LFR Instructions ////
 

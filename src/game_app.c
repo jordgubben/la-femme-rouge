@@ -127,8 +127,14 @@ void do_nothing_proc(lfr_node_id_t node_id,
 }
 
 lfr_instruction_def_t game_instructions[gi_no_instructions] = {
-	{"get_actor_position", do_nothing_proc, {}, {}},
-	{"set_actor_position", do_nothing_proc, {}, {}},
+	{"set_actor_position", do_nothing_proc,
+		{{"POS", (lfr_variant_t) { lfr_vec2_type, .vec2_value = { 0,0}}},},
+		{},
+	},
+	{"get_actor_position", do_nothing_proc,
+		{},
+		{{"POS", (lfr_variant_t) { lfr_vec2_type, .vec2_value = { 0,0}}},},
+	},
 };
 
 
