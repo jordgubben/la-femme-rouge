@@ -248,12 +248,18 @@ int main( int argc, char** argv) {
 	lfr_editor_t editor = {0};
 	lfr_init_editor(nk_rect(0,0, 1920, 1080/2), win, ctx, &editor);
 
-	// Set up LFR example
-	// (keep things simmple by skipping load from file)
-	lfr_node_id_t n1 = lfr_add_custom_node(gi_get_actor_position, &graph);
-	lfr_node_id_t n2 = lfr_add_custom_node(gi_set_actor_position, &graph);
-	lfr_link_nodes(n1, n2, &graph);
-	lfr_link_data(n1, 0, n2, 1, &graph);
+	// Optionally dump graph script to file
+	if (argc > 1) {
+		printf("Loading graph from file: %s\n", argv[1]);
+		lfr_load_graph_from_file_path(argv[1], &vm, &graph);
+	} else {
+		// Set up LFR example
+		// (keep things simmple by skipping load from file)
+		lfr_node_id_t n1 = lfr_add_custom_node(gi_get_actor_position, &graph);
+		lfr_node_id_t n2 = lfr_add_custom_node(gi_set_actor_position, &graph);
+		lfr_link_nodes(n1, n2, &graph);
+		lfr_link_data(n1, 0, n2, 1, &graph);
+	}
 
 	// Script stepping timer
 	double last_step_time = glfwGetTime();
@@ -308,6 +314,12 @@ int main( int argc, char** argv) {
 		// Cooperate with OS
 		glfwSwapBuffers(win);
 		glfwPollEvents();
+	}
+
+	// Optionally dump graph script to file
+	if (argc > 1) {
+		printf("Saving graph to file: %s\n", argv[1]);
+		lfr_save_graph_to_file_path(&graph, &vm, argv[1]);
 	}
 
 	// Terminate application

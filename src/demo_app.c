@@ -48,9 +48,7 @@ int main( int argc, char** argv) {
 	// Optionally read graph script from file
 	if (argc > 1) {
 		printf("Loading graph from file: %s\n", argv[1]);
-		FILE * fp = fopen(argv[1], "r");
-		lfr_load_graph_from_file(fp, &vm, &graph);
-		fclose(fp);
+		lfr_load_graph_from_file_path(argv[1], &vm, &graph);
 	} else {
 		// Construct graph
 		lfr_node_id_t n1 = lfr_add_node(lfr_print_own_id, &graph);
@@ -79,9 +77,7 @@ int main( int argc, char** argv) {
 	// Optionally dump graph script to file
 	if (argc > 1) {
 		printf("Saving graph to file: %s\n", argv[1]);
-		FILE * fp = fopen(argv[1], "w");
-		lfr_save_graph_to_file(&graph, &vm, fp);
-		fclose(fp);
+		lfr_save_graph_to_file_path(&graph, &vm, argv[1]);
 	}
 
 	lfr_term_graph(&graph);

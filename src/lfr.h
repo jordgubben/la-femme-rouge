@@ -131,7 +131,9 @@ void lfr_unlink_input_data(lfr_node_id_t, unsigned, lfr_graph_t*);
 void lfr_unlink_output_data(lfr_node_id_t, unsigned, lfr_graph_t*);
 
 // Graph serialization
-void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t*, lfr_graph_t *graph);
+void lfr_load_graph_from_file_path(const char *, const lfr_vm_t *, lfr_graph_t *);
+void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t *, lfr_graph_t *);
+void lfr_save_graph_to_file_path(const lfr_graph_t *, const lfr_vm_t *, const char *path);
 int lfr_save_graph_to_file(const lfr_graph_t *, const lfr_vm_t *, FILE * restrict stream);
 int lfr_save_flow_links_to_file(const lfr_graph_t *, FILE * restrict stream);
 
@@ -530,6 +532,18 @@ void lfr_unlink_output_data(lfr_node_id_t out_node, unsigned out_slot, lfr_graph
 
 
 /**
+Load graph from the given file path.
+
+Utility function that just handles file opening and closing for you.
+**/
+void lfr_load_graph_from_file_path(const char* file_path, const lfr_vm_t *vm, lfr_graph_t *graph) {
+	FILE * fp = fopen(file_path, "r");
+	lfr_load_graph_from_file(fp, vm, graph);
+	fclose(fp);
+}
+
+
+/**
 Load graph content from (tab separated) file.
 **/
 void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t *vm, lfr_graph_t *graph) {
@@ -577,6 +591,19 @@ void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t *vm, lfr_gr
 		}
 	}
 }
+
+
+/**
+Save graph to file at the given path.
+
+Utility function that just handles file opening and closing for you.
+**/
+void lfr_save_graph_to_file_path(const lfr_graph_t *graph, const lfr_vm_t *vm, const char *path) {
+	FILE * fp = fopen(path, "w");
+	lfr_save_graph_to_file(graph, vm, fp);
+	fclose(fp);
+}
+
 
 /**
 Dump graph to file in a parsable (tab-separated) format.
