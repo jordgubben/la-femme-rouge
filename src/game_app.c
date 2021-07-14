@@ -68,6 +68,7 @@ typedef struct gl_mesh_ {
 	unsigned num_indecies;
 } gl_mesh_t;
 
+typedef struct vec2_ { float x,y; } vec2_t;
 typedef struct vec3_ { float x,y,z; } vec3_t;
 typedef struct mat4_ {float m[16]; } mat4_t;
 
@@ -113,6 +114,18 @@ const unsigned unit_quad_indices[3*2] = {
 	0, 2, 3,
 };
 
+
+//// Game world ////
+
+enum {
+	num_actors_in_world = 4,
+};
+
+typedef struct population_ {
+	vec2_t actor_positions[num_actors_in_world];
+
+} population_t;
+
 //// Games custom instructions ////
 
 typedef enum game_instructions_ {
@@ -148,6 +161,12 @@ Application starting point.
 int main( int argc, char** argv) {
 	printf("gi_set_actor_position = %u\n" , gi_set_actor_position);
 	printf("gi_get_actor_position = %u\n" , gi_get_actor_position);
+
+	// Init world population
+	population_t pop = {0};
+	for (int i = 0; i < num_actors_in_world; i++) {
+		pop.actor_positions[i] = (vec2_t) {0.5, 0.5 - 0.25 * i};
+	}
 
 	// Initialize window (Full HD)
 	GLFWwindow *win;
@@ -226,18 +245,21 @@ int main( int argc, char** argv) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		CHECK_GL_OR("Prepare rendering", goto quit);
 
+		// Render some actors
+		// (So that the custom controls have something to manipulate)
+		for (int i = 0; i < num_actors_in_world; i++) {
+			vec2_t pos = pop.actor_positions[i];
+			const float s = 0.2;
+			const mat4_t transform = {
+				s, 0, 0, pos.x,
+				0, s, 0, pos.y,
+				0, 0,.5, 0,
+				0, 0, 0, 1
+			};
 
-		// Set transform
-		const mat4_t transform = {
-			.5, 0,  0, 0,
-			0, .5,  0, 0,
-			0,  0, .5, 0,
-			0,  0,  0, 1
-		};
-
-		// Render world
-		render_mesh(&program, &unit_quad, &transform);
-		render_mesh(&program, &triangle, &transform);
+			// Render world
+			render_mesh(&program, &unit_quad, &transform);
+		}
 
 		// Render UI
 		nk_glfw3_render(&glfw, NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
