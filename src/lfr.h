@@ -582,9 +582,21 @@ void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t *vm, lfr_gr
 		} else if (strcmp(type_buf, "value") == 0) {
 			lfr_node_id_t input_node;
 			unsigned input_slot;
-			float float_value;
-			sscanf(line_buf, "value #%u:%u = %f", &input_node.id, &input_slot, &float_value);
-			lfr_set_fixed_input_value(input_node, input_slot, lfr_float(float_value), &graph->nodes);
+			char type_buf[9];
+			int n;
+			sscanf(line_buf, "value #%u:%u = %8s %n", &input_node.id, &input_slot, type_buf, &n);
+
+			// TODO: Also handle int and vec2
+			if (strcmp(type_buf, "float") == 0) {
+				lfr_variant_t var = {lfr_float_type};
+				sscanf(&line_buf[n], "%f", &var.float_value);
+				lfr_set_fixed_input_value(input_node, input_slot, var, &graph->nodes);
+			} else {
+				fprintf(stderr,
+					"%s():\tSkipping unknown type '%s' for #%u:%u.\n",
+					__func__, type_buf, input_node.id, input_slot);
+			}
+
 		} else if (strcmp(type_buf, "link") == 0) {
 			// Parse and create link
 			lfr_node_id_t source, target;
@@ -843,7 +855,18 @@ int lfr_save_fixed_values_in_table_to_file(const lfr_node_table_t* table, FILE *
 
 			char_count += fprintf(stream, "value\t");
 			char_count += fprintf(stream, "#%u:%u =\t", id.id, slot);
-			char_count += fprintf(stream, "%f", node->input_data[slot].fixed_value.float_value);
+
+			// TODO: Handle any type (not just a single float)
+			lfr_variant_t var = node->input_data[slot].fixed_value;
+			if (var.type == lfr_float_type) {
+				char_count += fprintf(stream, "float %f", var.float_value);
+			} else {
+				char_count += fprintf(stream, "???");
+				fprintf(stderr,
+					"%s():\tFailed to write unknown type for #%u:%u.\n",
+					__func__, id.id, slot);
+			}
+
 			char_count += fprintf(stream, "\n");
 		}
 	}
