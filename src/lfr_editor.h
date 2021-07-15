@@ -345,15 +345,15 @@ void show_node_input_slots_group(
 			}
 		} break;
 		case lfr_float_type: {
-			float new_value = nk_propertyf(ctx, "#=", FLT_MIN, data.float_value, FLT_MAX, 1, 1);
+			float new_value = nk_propertyf(ctx, "#=", -FLT_MAX, data.float_value, +FLT_MAX, 1, 1);
 			if (data.float_value != new_value) {
 				lfr_set_fixed_input_value(node_id, slot, lfr_float(new_value), &graph->nodes);
 			}
 		} break;
 		case lfr_vec2_type: {
 			// Set a new value if it's changed by the UI (breaks link)
-			float new_x = nk_propertyf(ctx, "#=", FLT_MIN, data.vec2_value.x, FLT_MAX, 1, 1);
-			float new_y = nk_propertyf(ctx, "#=", FLT_MIN, data.vec2_value.y, FLT_MAX, 1, 1);
+			float new_x = nk_propertyf(ctx, "#=", -FLT_MAX, data.vec2_value.x, +FLT_MAX, 1, 1);
+			float new_y = nk_propertyf(ctx, "#=", -FLT_MAX, data.vec2_value.y, +FLT_MAX, 1, 1);
 			if (data.vec2_value.x != new_x || data.vec2_value.y != new_y) {
 				lfr_set_fixed_input_value(node_id, slot, lfr_vec2_xy(new_x, new_y), &graph->nodes);
 			}
