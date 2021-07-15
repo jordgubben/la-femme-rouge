@@ -586,7 +586,7 @@ void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t *vm, lfr_gr
 			int n;
 			sscanf(line_buf, "value #%u:%u = %8s %n", &input_node.id, &input_slot, type_buf, &n);
 
-			// TODO: Also handle vec2
+			// Read type specific value from the rest of the line
 			if (strcmp(type_buf, "float") == 0) {
 				lfr_variant_t var = {lfr_float_type};
 				sscanf(&line_buf[n], "%f", &var.float_value);
@@ -594,6 +594,10 @@ void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t *vm, lfr_gr
 			} else if (strcmp(type_buf, "int") == 0) {
 				lfr_variant_t var = {lfr_int_type};
 				sscanf(&line_buf[n], "%d", &var.int_value);
+				lfr_set_fixed_input_value(input_node, input_slot, var, &graph->nodes);
+			} else if (strcmp(type_buf, "vec2") == 0) {
+				lfr_variant_t var = {lfr_vec2_type};
+				sscanf(&line_buf[n], "(%f, %f)", &var.vec2_value.x, &var.vec2_value.y);
 				lfr_set_fixed_input_value(input_node, input_slot, var, &graph->nodes);
 			} else {
 				fprintf(stderr,
@@ -857,15 +861,20 @@ int lfr_save_fixed_values_in_table_to_file(const lfr_node_table_t* table, FILE *
 			if (node->input_data[slot].node.id != 0) { continue; }
 			if (node->input_data[slot].fixed_value.type == lfr_nil_type) { continue; }
 
+			// Print 'value' and slot
 			char_count += fprintf(stream, "value\t");
 			char_count += fprintf(stream, "#%u:%u =\t", id.id, slot);
 
-			// TODO: Handle vec2
+			// Print type specific string to stream
 			lfr_variant_t var = node->input_data[slot].fixed_value;
 			if (var.type == lfr_float_type) {
 				char_count += fprintf(stream, "float %f", var.float_value);
 			} else if (var.type == lfr_int_type) {
 				char_count += fprintf(stream, "int %d", var.int_value);
+			} else if (var.type == lfr_vec2_type) {
+				char_count += fprintf(stream,
+					"vec2 (%f, %f)",
+					var.vec2_value.x, var.vec2_value.y);
 			} else {
 				char_count += fprintf(stream, "???");
 				fprintf(stderr,
