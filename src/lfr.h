@@ -78,6 +78,7 @@ typedef struct lfr_node_table_ {
 
 // Node CRUD
 lfr_node_id_t lfr_insert_node_into_table(unsigned instruction, lfr_node_table_t*);
+void lfr_change_node_id_in_table(lfr_node_id_t old_id, lfr_node_id_t new_id, lfr_node_table_t  *table);
 unsigned lfr_get_node_index(lfr_node_id_t, const lfr_node_table_t *);
 lfr_vec2_t lfr_get_node_position(lfr_node_id_t, const lfr_node_table_t *);
 lfr_variant_t lfr_get_fixed_input_value(lfr_node_id_t, unsigned slot, const lfr_vm_t *, const lfr_node_table_t *);
@@ -562,16 +563,18 @@ void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t *vm, lfr_gr
 			/* Skip if empty */
 		} else if (strcmp(type_buf, "node") == 0) {
 			// Parse instruction
-			lfr_node_id_t expected_id;
+			lfr_node_id_t id;
 			char inst_buf[32];
 			lfr_vec2_t pos;
-			sscanf(line_buf, "node #%u %s (%f,%f)", &expected_id.id, inst_buf, &pos.x, &pos.y);
+			sscanf(line_buf, "node #%u %s (%f,%f)", &id.id, inst_buf, &pos.x, &pos.y);
 
 			// Add instruction
 			lfr_instruction_e instruction = lfr_find_instruction_from_name(inst_buf, vm);
-			lfr_node_id_t new_id = lfr_insert_node_into_table(instruction, &graph->nodes);
-			assert(T_SAME_ID(new_id, expected_id));
-			lfr_set_node_position(new_id, pos, &graph->nodes);
+			lfr_node_id_t tmp_id = lfr_insert_node_into_table(instruction, &graph->nodes);
+			if (!T_SAME_ID(tmp_id, id)) {
+				lfr_change_node_id_in_table(tmp_id, id, &graph->nodes);
+			}
+			lfr_set_node_position(id, pos, &graph->nodes);
 
 		} else if (strcmp(type_buf, "data") == 0) {
 			lfr_node_id_t output_node, input_node;
@@ -671,7 +674,11 @@ Insert a new node at the end of the table.
 lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e inst, lfr_node_table_t *table) {
 	assert(table->num_rows < lfr_node_table_max_rows);
 
-	// Insert row into sparse table
+	// Insert row into sparse table with an unused id
+	while(!table->next_id || T_HAS_ID(*table, (lfr_node_id_t) { table->next_id})) {
+		table->next_id++;
+		table->next_id %=lfr_node_table_id_range;
+	};
 	int index = T_INSERT_ROW(*table, lfr_node_id_t);
 
 	// Set row data
@@ -682,6 +689,22 @@ lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e inst, lfr_node_table_
 	table->position[index] = (lfr_vec2_t) { 0, 0};
 
 	return table->dense_id[index];
+}
+
+
+/**
+Cnage the id of an existing table row to an unused if.
+
+Note:
+Although available in the pulblic API, this function moslty has internal usages.
+It is used to change node IDs when loading files so that nodes get the ID definded in the file
+and not just the next free one.
+**/
+void lfr_change_node_id_in_table(lfr_node_id_t old_id, lfr_node_id_t new_id, lfr_node_table_t  *table) {
+	assert(T_HAS_ID(*table, old_id) && !T_HAS_ID(*table, new_id));
+	unsigned index = T_INDEX(*table, old_id);
+	table->dense_id[index] = new_id;
+	table->sparse_id[new_id.id] = index;
 }
 
 
