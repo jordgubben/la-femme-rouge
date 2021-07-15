@@ -1040,13 +1040,23 @@ const char* lfr_get_custom_instruction_name(unsigned inst, const lfr_vm_t *vm) {
 
 
 /**
-Get (core) instruction code from name.
+Get (core or custom) instruction code from name.
 
-TODO: Also search custom instructions
+Custom instructions are searched first to prevent new core instructions from breaking
+existing scripts where a custom instruction has the same name.
+
 **/
 lfr_instruction_e lfr_find_instruction_from_name(const char* name, const lfr_vm_t *vm) {
+	// Search among custom instructions
+	for (int i = 0; i < vm->num_custom_instructions; i++) {
+		if (strcmp(name, lfr_get_custom_instruction_name(i, vm)) == 0) {
+			return i + (1 << 8);
+		}
+	}
+
+	// Search among core intructions
 	for (int i = 0; i < lfr_no_core_instructions; i++) {
-		if (strcmp(name, lfr_get_instruction_name(i, vm)) == 0) {
+		if (strcmp(name, lfr_get_core_instruction_name(i, vm)) == 0) {
 			return i;
 		}
 	}
