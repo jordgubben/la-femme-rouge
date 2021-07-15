@@ -155,9 +155,13 @@ typedef struct lfr_vm_ {
 	void *custom_data;
 } lfr_vm_t;
 
-const char* lfr_get_instruction_name(lfr_instruction_e, const lfr_vm_t *);
 lfr_instruction_e lfr_find_instruction_from_name(const char* name, const lfr_vm_t *);
-const struct lfr_instruction_def_* lfr_get_instruction(lfr_instruction_e, const lfr_vm_t *);
+const char* lfr_get_instruction_name(unsigned, const lfr_vm_t *);
+const char* lfr_get_core_instruction_name(lfr_instruction_e, const lfr_vm_t *);
+const char* lfr_get_custom_instruction_name(unsigned, const lfr_vm_t *);
+const struct lfr_instruction_def_* lfr_get_instruction(unsigned, const lfr_vm_t *);
+const struct lfr_instruction_def_* lfr_get_core_instruction(lfr_instruction_e, const lfr_vm_t *);
+const struct lfr_instruction_def_* lfr_get_custom_instruction(unsigned, const lfr_vm_t *);
 
 
 //// LFR Node state ////
@@ -981,24 +985,57 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 
 
 /**
-Get entire (code) instruction definition.
+Get entire (core or custom) instruction definition.
 **/
 const lfr_instruction_def_t* lfr_get_instruction(lfr_instruction_e inst, const lfr_vm_t *vm) {
 	if (inst < lfr_no_core_instructions) {
-		return &lfr_core_instructions_[inst];
+		return lfr_get_core_instruction(inst, vm);
 	} else {
 		inst -= 1<<8;
-		assert(inst < vm->num_custom_instructions);
-		return &vm->custom_instructions[inst];
+		return lfr_get_custom_instruction(inst, vm);
 	}
 }
 
 
 /**
-Get name of (core) instruction.
+Get entire *core* instruction definition.
 **/
-const char* lfr_get_instruction_name(lfr_instruction_e inst, const lfr_vm_t *vm) {
+const lfr_instruction_def_t* lfr_get_core_instruction(lfr_instruction_e inst, const lfr_vm_t *vm) {
+	assert(inst < lfr_no_core_instructions);
+	return &lfr_core_instructions_[inst];
+}
+
+
+/**
+Get entire *custom* instruction definition.
+**/
+const lfr_instruction_def_t* lfr_get_custom_instruction(lfr_instruction_e inst, const lfr_vm_t *vm) {
+	assert(inst < vm->num_custom_instructions);
+	return &vm->custom_instructions[inst];
+}
+
+
+/**
+Get name of (core or custom) instruction.
+**/
+const char* lfr_get_instruction_name(unsigned inst, const lfr_vm_t *vm) {
 	return lfr_get_instruction(inst, vm)->name;
+}
+
+
+/**
+Get name of *core* instruction.
+**/
+const char* lfr_get_core_instruction_name(lfr_instruction_e inst, const lfr_vm_t *vm) {
+	return lfr_get_core_instruction(inst, vm)->name;
+}
+
+
+/**
+Get name of *custom* instruction.
+**/
+const char* lfr_get_custom_instruction_name(unsigned inst, const lfr_vm_t *vm) {
+	return lfr_get_custom_instruction(inst, vm)->name;
 }
 
 

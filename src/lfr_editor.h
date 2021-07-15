@@ -590,14 +590,18 @@ void show_node_creation_contextual_menu(const lfr_vm_t *vm, struct nk_context* c
 	assert(ctx && graph);
 
 	// Open context menu - or early out if it can't be opened
-	struct nk_vec2 size = nk_vec2(100,200);
+	float row_height = 25;
+	int num_rows = lfr_no_core_instructions + vm->num_custom_instructions;
+	struct nk_vec2 size = nk_vec2(150, row_height * num_rows );
 	struct nk_rect trigger_bounds = nk_window_get_bounds(ctx);
 	if (!nk_contextual_begin(ctx, 0, size, trigger_bounds)) { return; }
 
 	// List all available options
-	nk_layout_row_dynamic(ctx, 25, 1);
+	nk_layout_row_dynamic(ctx, row_height -5, 1);
+
+	// Core instructions
 	for (int i = 0; i < lfr_no_core_instructions; i++) {
-		const char* name = lfr_get_instruction_name(i, vm);
+		const char* name = lfr_get_core_instruction_name(i, vm);
 		if ( nk_contextual_item_label(ctx, name, NK_TEXT_LEFT)) {
 			// Create node
 			lfr_node_id_t id = lfr_add_node(i, graph);
@@ -608,6 +612,21 @@ void show_node_creation_contextual_menu(const lfr_vm_t *vm, struct nk_context* c
 			lfr_set_node_position(id, node_pos, &graph->nodes);
 		}
 	}
+
+	// Custom instructions
+	for (int i = 0; i < vm->num_custom_instructions; i++) {
+		const char* name = lfr_get_custom_instruction_name(i, vm);
+		if ( nk_contextual_item_label(ctx, name, NK_TEXT_LEFT)) {
+			// Create node
+			lfr_node_id_t id = lfr_add_custom_node(i, graph);
+
+			// Position at cursor
+			struct nk_vec2 mouse_pos = ctx->input.mouse.pos;
+			lfr_vec2_t node_pos = {mouse_pos.x, mouse_pos.y};
+			lfr_set_node_position(id, node_pos, &graph->nodes);
+		}
+	}
+
 	nk_contextual_end(ctx);
 }
 
