@@ -9,9 +9,6 @@ Requirements:
 #ifndef LFR_EDITOR_H
 #define LFR_EDITOR_H
 
-const char *bg_window_title = "Graph editor BG";
-const unsigned node_window_w = 210, node_window_h = 330;
-
 typedef enum editor_mode_ {
 	em_normal,
 	em_select_flow_prev,
@@ -64,6 +61,9 @@ void draw_data_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_c
 void draw_link_selection_curve(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
 void show_node_creation_contextual_menu(const lfr_vm_t *, struct nk_context *, lfr_graph_t *);
 
+
+static const char *bg_window_title = "Graph editor BG";
+static const unsigned node_window_w = 210, node_window_h = 330;
 
 /**
 Init editor.
