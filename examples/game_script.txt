@@ -2,11 +2,13 @@ node	#1	mul	(19.000000, 20.000000)
 node	#2	mul	(269.000000, 59.000000)
 node	#3	sub	(521.000000, 93.000000)
 node	#4	print_value	(782.000000, 128.000000)
-node	#5	set_actor_position	(1081.000000, 88.000000)
-node	#6	get_actor_position	(1460.000000, 113.000000)
+node	#5	set_actor_position	(1081.000000, 80.000000)
+node	#6	get_actor_position	(1358.000000, 80.000000)
+node	#7	print_value	(1632.000000, 108.000000)
 data	#1:0 -> #2:0
 data	#2:0 -> #3:0
 data	#3:0 -> #4:0
+data	#6:0 -> #7:0
 value	#1:0 =	float 5.000000
 value	#1:1 =	float 2.000000
 value	#2:1 =	float 10.000000
