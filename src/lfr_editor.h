@@ -501,11 +501,11 @@ void draw_flow_link_lines(const lfr_editor_t *app, const lfr_graph_t *graph, str
 
 		// Draw curve
 		const float ex = 75;
-		int r = 150 + (link->source_node.id * 11) % 100;
-		int g = 100 + (link->target_node.id * 11) % 100;
+		int r = 100 + (link->source_node.id * 20) % 151;
+		int g = 100 + (link->target_node.id * 20) % 151;
 		nk_stroke_curve(canvas,
 			p1.x, p1.y, p1.x + ex, p1.y, p2.x - ex, p2.y, p2.x, p2.y,
-			2.f, nk_rgb(r, g, 50));
+			2.f, nk_rgb(r, g, 0));
 	}
 }
 
@@ -536,12 +536,12 @@ void draw_data_link_lines(const lfr_editor_t *app, const lfr_graph_t *graph, str
 
 			// Draw curve
 			const float ex = 100;
-			int g = 150 + (out_node_id.id * 11) % 100;
-			int b = 100 + (in_node_id.id * 11) % 100;
+			int g = 100 + (out_node_id.id * 20) % 151;
+			int b = 100 + (in_node_id.id * 20) % 151;
 			nk_stroke_curve(canvas,
 				out_pos.x, out_pos.y, out_pos.x + ex, out_pos.y,
 				in_pos.x - ex, in_pos.y, in_pos.x, in_pos.y,
-				2.f, nk_rgb(50, g, b));
+				2.f, nk_rgb(0, g, b));
 		}
 	}
 }
