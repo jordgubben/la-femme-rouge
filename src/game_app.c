@@ -126,6 +126,7 @@ enum {
 
 typedef struct population_ {
 	vec2_t actor_positions[num_actors_in_world];
+	float actor_scales[num_actors_in_world];
 	vec2_t cursor_world_pos;
 } population_t;
 
@@ -135,6 +136,7 @@ typedef enum game_instructions_ {
 	gi_set_actor_position,
 	gi_get_actor_position,
 	gi_get_cursor_position,
+	gi_set_actor_scale,
 	gi_no_instructions // Not an instruction
 } game_instructions_e;
 
@@ -199,6 +201,29 @@ lfr_result_e get_cursor_position_proc(lfr_node_id_t node_id,
 }
 
 
+/**
+Script instruction: Set scale of a given actor.
+**/
+lfr_result_e set_actor_scale_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
+		const lfr_graph_t* graph) {
+	assert(custom_data);
+	population_t *pop = custom_data;
+
+	// Find actor
+	int actor_index = input[0].int_value;
+	actor_index %= num_actors_in_world;
+
+	// Get new scale
+	float new_scale = lfr_to_float(input[1]);
+
+	// Scale actor
+	pop->actor_scales[actor_index] = new_scale;
+	return lfr_continue;
+}
+
+
 lfr_instruction_def_t game_instructions[gi_no_instructions] = {
 	{"set_actor_position", set_actor_position_proc,
 		{
@@ -215,6 +240,13 @@ lfr_instruction_def_t game_instructions[gi_no_instructions] = {
 		{},
 		{{"POS", (lfr_variant_t) { lfr_vec2_type, .vec2_value = { 0,0}}},},
 	},
+	{"set_actor_scale", set_actor_scale_proc,
+		{
+			{"ACTOR", {lfr_int_type, .int_value = 0 }},
+			{"SCALE", (lfr_variant_t) { lfr_float_type, .float_value = 0}},
+		},
+		{},
+	},
 };
 
 
@@ -229,6 +261,7 @@ int main( int argc, char** argv) {
 	population_t pop = {0};
 	for (int i = 0; i < num_actors_in_world; i++) {
 		pop.actor_positions[i] = (vec2_t) {-0.75 + 0.5 * i, 0.0};
+		pop.actor_scales[i] = 1.0;
 	}
 
 	// Initialize window (Full HD)
@@ -381,8 +414,9 @@ int main( int argc, char** argv) {
 		// (So that the custom controls have something to manipulate)
 		for (int i = 0; i < num_actors_in_world; i++) {
 			vec2_t pos = pop.actor_positions[i];
+			float scale = pop.actor_scales[i];
 			const float r = ((float) width)/((float) height *0.5);
-			const float s = 0.2f;
+			const float s = 0.2f * scale;
 			const mat4_t transform = {
 				s/r, 0, 0, pos.x/r,
 				0, s, 0, pos.y,
