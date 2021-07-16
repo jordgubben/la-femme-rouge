@@ -33,7 +33,7 @@ but you can use whatever you want for your own project since LFR is a header-onl
 ## Backlog / Whishlist
 This project is still in it's infancy. Here are a few of the most obvious things that would be nice to have.
 
- - Maththematical nodes can use all numeric types (`int`, `float`, `vec2`)
+ - Mathematical nodes can use all numeric types (`int`, `float`, `vec2`)
  - Node instruction for division `/` (supporting all relevant types)
  - A `vec3` type (with appropriate support from existing math instructions)
  - A `bool` type with it's own set of instructions (`and`, `or`, `not`)
