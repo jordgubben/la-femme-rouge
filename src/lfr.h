@@ -216,6 +216,8 @@ lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned slot,
 
 void lfr_schedule(lfr_node_id_t, const lfr_graph_t *, lfr_graph_state_t *);
 int lfr_step(const lfr_vm_t *, const lfr_graph_t *, lfr_graph_state_t *);
+lfr_result_e lfr_process_node_instruction(unsigned inst, lfr_node_id_t,
+	const lfr_vm_t *, const lfr_graph_t *, lfr_graph_state_t *);
 
 #endif
 
@@ -283,28 +285,10 @@ int lfr_step(const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *st
 	// Find the right node
 	const lfr_node_id_t node_id = state->schedueled_nodes[0];
 	const unsigned node_index = T_INDEX(graph->nodes, node_id);
-	const lfr_node_t *head = &graph->nodes.node[node_index];
+	const unsigned instruction = graph->nodes.node[node_index].instruction;
 
 	// Process instruction
-	// TODO: Extract to separate function
-	{
-		lfr_variant_t input[8] = {0}, output[8] = {0};
-
-		// Get Input
-		for (int i = 0; i < lfr_signature_size; i++) {
-			input[i] = lfr_get_input_value(node_id, i, vm, graph, state);
-		}
-
-		// Process instruction
-		const lfr_instruction_def_t *instruction = lfr_get_instruction(head->instruction, vm);
-		instruction->func(node_id, input, output, vm->custom_data, graph);
-
-		// Update node state with new result data
-		unsigned state_index = lfr_insert_node_state_at(node_id, &graph->nodes, &state->nodes);
-		for (int i = 0; i < lfr_signature_size; i++) {
-			state->nodes.node_state[state_index].output_data[i] = output[i];
-		}
-	}
+	lfr_result_e result = lfr_process_node_instruction(instruction, node_id, vm, graph, state);
 
 	// Enqueue nodes - Continue flow throgh graph
 	for (int i =0; i < graph->num_flow_links; i++) {
@@ -319,6 +303,32 @@ int lfr_step(const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *st
 		state->schedueled_nodes[i-1] = state->schedueled_nodes[i];
 	}
 	return state->num_schedueled_nodes--;
+}
+
+
+/**
+Process a single node instruction.
+**/
+lfr_result_e lfr_process_node_instruction(unsigned instruction, lfr_node_id_t node_id,
+		const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *state) {
+	lfr_variant_t input[8] = {0}, output[8] = {0};
+
+	// Get Input
+	for (int i = 0; i < lfr_signature_size; i++) {
+		input[i] = lfr_get_input_value(node_id, i, vm, graph, state);
+	}
+
+	// Process instruction
+	const lfr_instruction_def_t *def = lfr_get_instruction(instruction, vm);
+	lfr_result_e result = def->func(node_id, input, output, vm->custom_data, graph);
+
+	// Update node state with new result data
+	unsigned state_index = lfr_insert_node_state_at(node_id, &graph->nodes, &state->nodes);
+	for (int i = 0; i < lfr_signature_size; i++) {
+		state->nodes.node_state[state_index].output_data[i] = output[i];
+	}
+
+	return result;
 }
 
 
