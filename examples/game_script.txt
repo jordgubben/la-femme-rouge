@@ -20,3 +20,4 @@ value	#6:0 =	int 1
 link	#1 -> #2
 link	#2 -> #3
 link	#3 -> #4
+link	#6 -> #7
