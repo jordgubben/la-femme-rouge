@@ -134,6 +134,7 @@ typedef struct population_ {
 typedef enum game_instructions_ {
 	gi_set_actor_position,
 	gi_get_actor_position,
+	gi_get_cursor_position,
 	gi_no_instructions // Not an instruction
 } game_instructions_e;
 
@@ -181,6 +182,23 @@ lfr_result_e get_actor_position_proc(lfr_node_id_t node_id,
 }
 
 
+/**
+Script instruction: Get the current cursor position in world space.
+**/
+lfr_result_e get_cursor_position_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
+		const lfr_graph_t* graph) {
+	assert(custom_data);
+	population_t *pop = custom_data;
+
+	// Output cursor position
+	vec2_t pos = pop->cursor_world_pos;
+	output[0] = lfr_vec2_xy(pos.x, pos.y);
+	return lfr_continue;
+}
+
+
 lfr_instruction_def_t game_instructions[gi_no_instructions] = {
 	{"set_actor_position", set_actor_position_proc,
 		{
@@ -191,6 +209,10 @@ lfr_instruction_def_t game_instructions[gi_no_instructions] = {
 	},
 	{"get_actor_position", get_actor_position_proc,
 		{{"ACTOR", {lfr_int_type, .int_value = 0 }}},
+		{{"POS", (lfr_variant_t) { lfr_vec2_type, .vec2_value = { 0,0}}},},
+	},
+	{"get_cursor_position", get_cursor_position_proc,
+		{},
 		{{"POS", (lfr_variant_t) { lfr_vec2_type, .vec2_value = { 0,0}}},},
 	},
 };
