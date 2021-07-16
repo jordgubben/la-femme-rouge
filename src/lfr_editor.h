@@ -19,7 +19,6 @@ typedef enum editor_mode_ {
 } editor_mode_e;
 
 typedef struct lfr_editor_ {
-	GLFWwindow* window;
 	struct nk_context *ctx;
 
 	// Interaction (mode based)
@@ -38,7 +37,7 @@ typedef struct lfr_editor_ {
 
 
 // Editor
-void lfr_init_editor(struct nk_rect bounds, GLFWwindow*, struct nk_context*, lfr_editor_t*);
+void lfr_init_editor(struct nk_rect bounds, struct nk_context*, lfr_editor_t*);
 void lfr_show_editor(lfr_editor_t * app, const lfr_vm_t*, lfr_graph_t *, lfr_graph_state_t *);
 void lfr_show_debug(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
 
@@ -68,8 +67,7 @@ static const unsigned node_window_w = 210, node_window_h = 330;
 /**
 Init editor.
 **/
-void lfr_init_editor(struct nk_rect bounds, GLFWwindow *win, struct nk_context *ctx, lfr_editor_t *editor) {
-	editor->window = win;
+void lfr_init_editor(struct nk_rect bounds, struct nk_context *ctx, lfr_editor_t *editor) {
 	editor->ctx = ctx;
 	editor->outer_bounds = bounds;
 }
@@ -549,8 +547,12 @@ void draw_data_link_lines(const lfr_editor_t *app, const lfr_graph_t *graph, str
 /*
 Draw selection curve (if in one of the appropriate modes).
 */
-void draw_link_selection_curve(const lfr_editor_t *app, const lfr_graph_t *graph, struct nk_command_buffer *canvas) {
+void draw_link_selection_curve(
+		const lfr_editor_t *app,
+		const lfr_graph_t *graph,
+		struct nk_command_buffer *canvas) {
 	assert(app && graph && canvas);
+	struct nk_vec2 mouse_pos = app->ctx->input.mouse.pos;
 
 	// Select source node in flow
 	if (app->mode == em_select_flow_prev && app->active_node_id.id) {
@@ -558,12 +560,8 @@ void draw_link_selection_curve(const lfr_editor_t *app, const lfr_graph_t *graph
 		lfr_vec2_t target_p = lfr_get_node_position(app->active_node_id, &graph->nodes);
 		target_p.y += 20;
 
-		// Mouse end
-		double mouse_x, mouse_y;
-		glfwGetCursorPos(app->window, &mouse_x, &mouse_y);
-
 		// Signify mode
-		nk_stroke_line(canvas, mouse_x, mouse_y, target_p.x, target_p.y, 5.f, nk_rgb(200,150,100));
+		nk_stroke_line(canvas, mouse_pos.x, mouse_pos.y, target_p.x, target_p.y, 5.f, nk_rgb(200,150,100));
 	}
 
 	// Select target node in flow
@@ -573,12 +571,8 @@ void draw_link_selection_curve(const lfr_editor_t *app, const lfr_graph_t *graph
 		source_p.x += node_window_w;
 		source_p.y += 20;
 
-		// Mouse end
-		double mouse_x, mouse_y;
-		glfwGetCursorPos(app->window, &mouse_x, &mouse_y);
-
 		// Signify mode
-		nk_stroke_line(canvas, source_p.x, source_p.y, mouse_x, mouse_y, 5.f, nk_rgb(150,200,100));
+		nk_stroke_line(canvas, source_p.x, source_p.y, mouse_pos.x, mouse_pos.y, 5.f, nk_rgb(150,200,100));
 	}
 }
 

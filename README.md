@@ -21,7 +21,6 @@ $ ./bin/game examples/game_script.txt
 The LFR 'runtime' single header file `lfr.h` has no dependencies exept for a handfull of standard C headers.
 
 The editor uses [Nuklear](https://github.com/Immediate-Mode-UI/Nuklear) for UI widgets.
-It's currently also uses a very small fraction of [GLFW](https://www.glfw.org/) that should probably be refactored out at some point.
 
 Both example applications use OpenGL, [GLEW](http://glew.sourceforge.net/) and [GLFW](https://www.glfw.org/).
 The later two are both available from [Homebrew](https://brew.sh/) for macOS users.
@@ -51,7 +50,6 @@ This project is still in it's infancy. Here are a few of the most obvious things
  - Hide data slots in node windows (like for flow links)
  - Snap flow link lines to resized node windows (like for data links)
  - Various other UI tweaks
- - Editor should not depend on GLFW (currently only uses it to get cursor position)
  - Automated tests (where it makes most sense)
 
 ## In the wild

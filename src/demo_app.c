@@ -114,10 +114,10 @@ void run_gui(const lfr_vm_t *vm, lfr_graph_t* graph, lfr_graph_state_t *state) {
 
 	// Init editor (cover whole screen)
 	lfr_editor_t app = {0};
-	lfr_init_editor(nk_rect(0,0,1024, 768), window, ctx, &app);
+	lfr_init_editor(nk_rect(0,0,1024, 768), ctx, &app);
 
 	// Keep the motor runnin
-	while(!glfwWindowShouldClose(app.window)) {
+	while(!glfwWindowShouldClose(window)) {
 		// Take a step through the graph now and then
 		double now = glfwGetTime();
 		while (now  > last_step_time + time_between_steps) {
@@ -137,7 +137,7 @@ void run_gui(const lfr_vm_t *vm, lfr_graph_t* graph, lfr_graph_state_t *state) {
 
 		// Prepare rendering
 		int width, height;
-		glfwGetWindowSize(app.window, &width, &height);
+		glfwGetWindowSize(window, &width, &height);
 		glViewport(0, 0, width, height);
 		glClearColor(.75f, .95f, .75f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -147,14 +147,14 @@ void run_gui(const lfr_vm_t *vm, lfr_graph_t* graph, lfr_graph_state_t *state) {
 		nk_glfw3_render(&glfw, NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
 
 		// Cooperate with OS
-		glfwSwapBuffers(app.window);
+		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
 	// Terminate application
 	quit:
 	nk_glfw3_shutdown(&glfw);
-	term_gl_app(app.window);
+	term_gl_app(window);
 }
 
 

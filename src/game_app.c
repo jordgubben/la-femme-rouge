@@ -249,7 +249,7 @@ int main( int argc, char** argv) {
 	lfr_init_graph(&graph);
 	lfr_graph_state_t graph_state = {0};
 	lfr_editor_t editor = {0};
-	lfr_init_editor(nk_rect(0,0, 1920, 1080/2), win, ctx, &editor);
+	lfr_init_editor(nk_rect(0,0, 1920, 1080/2), ctx, &editor);
 
 	// Optionally dump graph script to file
 	if (argc > 1) {
