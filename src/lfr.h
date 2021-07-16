@@ -143,9 +143,15 @@ int lfr_save_flow_links_to_file(const lfr_graph_t *, FILE * restrict stream);
 
 //// LFR Instruction definitions ////
 
+typedef enum lfr_result_ {
+	lfr_halt,
+	lfr_continue,
+	lfr_no_results // Not a result :P
+} lfr_result_e;
+
 typedef struct lfr_instruction_def_ {
 	const char *name;
-	void (*func)(lfr_node_id_t, lfr_variant_t input[], lfr_variant_t output[], void*, const lfr_graph_t *);
+	lfr_result_e (*func)(lfr_node_id_t, lfr_variant_t input[], lfr_variant_t output[], void*, const lfr_graph_t *);
 	struct {
 		const char* name;
 		lfr_variant_t data;
@@ -917,17 +923,18 @@ int lfr_save_fixed_values_in_table_to_file(const lfr_node_table_t* table, FILE *
 
 //// LFR Instructions ////
 
-void lfr_print_own_id_proc(lfr_node_id_t node_id,
+lfr_result_e lfr_print_own_id_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
 		const lfr_graph_t* graph) {
 
 	unsigned node_index = T_INDEX(graph->nodes, node_id);
 	printf("Node ID: [#%u|%u]\n", node_id.id, node_index);
+	return lfr_continue;
 }
 
 
-void lfr_randomize_number_proc(lfr_node_id_t node_id,
+lfr_result_e lfr_randomize_number_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
 		const lfr_graph_t* graph) {
@@ -935,14 +942,14 @@ void lfr_randomize_number_proc(lfr_node_id_t node_id,
 	// Assign random float value
 	output[0].type = lfr_float_type;
 	output[0].float_value = (float)(rand())/(float)(RAND_MAX);
-	return;
+	return lfr_continue;
 }
 
 
 /**
 Combine floats into a sum.
 **/
-void lfr_add_proc(lfr_node_id_t node_id,
+lfr_result_e lfr_add_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
 		const lfr_graph_t* graph) {
@@ -957,13 +964,14 @@ void lfr_add_proc(lfr_node_id_t node_id,
 
 	// Assign result
 	output[0] = result;
+	return lfr_continue;
 }
 
 
 /**
 Subtract - Get the difference between two floats.
 **/
-void lfr_sub_proc(lfr_node_id_t node_id,
+lfr_result_e lfr_sub_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
 		const lfr_graph_t* graph) {
@@ -974,13 +982,14 @@ void lfr_sub_proc(lfr_node_id_t node_id,
 	} else {
 		assert(0 && "Not two floats");
 	}
+	return lfr_continue;
 }
 
 
 /**
 Multiply - Get the procuct of two (or more) floats
 **/
-void lfr_mul_proc(lfr_node_id_t node_id,
+lfr_result_e lfr_mul_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
 		const lfr_graph_t* graph) {
@@ -995,13 +1004,14 @@ void lfr_mul_proc(lfr_node_id_t node_id,
 
 	// Assign result
 	output[0] = result;
+	return lfr_continue;
 }
 
 
 /**
 Calculate the distance between two vec2.
 **/
-void lfr_distance_proc(lfr_node_id_t node_id,
+lfr_result_e lfr_distance_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
 		const lfr_graph_t* graph) {
@@ -1017,13 +1027,14 @@ void lfr_distance_proc(lfr_node_id_t node_id,
 			"Distance node [#%u|%u] recieved an unsuported input type combination.",
 			node_id.id, lfr_get_node_index(node_id, &graph->nodes));
 	}
+	return lfr_continue;
 }
 
 
 /**
 Print value to stdout.
 **/
-void lfr_print_value_proc(lfr_node_id_t node_id,
+lfr_result_e lfr_print_value_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
 		const lfr_graph_t* graph) {
@@ -1035,6 +1046,7 @@ void lfr_print_value_proc(lfr_node_id_t node_id,
 	case lfr_vec2_type: { printf("(%f,%f)\n", input[0].vec2_value.x, input[0].vec2_value.y); } break;
 	case lfr_no_core_types: { assert(0 && "Not a type"); } break;
 	}
+	return lfr_continue;
 }
 
 

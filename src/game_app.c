@@ -138,7 +138,7 @@ typedef enum game_instructions_ {
 /**
 Script instruction: Set position of the given actor.
 **/
-void set_actor_position_proc(lfr_node_id_t node_id,
+lfr_result_e set_actor_position_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
 		const lfr_graph_t* graph) {
@@ -154,13 +154,14 @@ void set_actor_position_proc(lfr_node_id_t node_id,
 
 	// Set new position
 	pop->actor_positions[actor_index] = (vec2_t) { in_pos.x, in_pos.y };
+	return lfr_continue;
 }
 
 
 /**
 Script instruction: Get position of the given actor.
 **/
-void get_actor_position_proc(lfr_node_id_t node_id,
+lfr_result_e get_actor_position_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
 		const lfr_graph_t* graph) {
@@ -174,6 +175,7 @@ void get_actor_position_proc(lfr_node_id_t node_id,
 
 	// Output position
 	output[0] = lfr_vec2_xy(pos.x, pos.y);
+	return lfr_continue;
 }
 
 
