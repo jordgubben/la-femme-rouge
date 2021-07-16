@@ -6,6 +6,7 @@ LFR Scripting "game" used to demonstrate how to integrate LFR with an existing a
 #include <assert.h>
 #include <float.h>
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>

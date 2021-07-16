@@ -8,6 +8,7 @@ LFR Scripting demo app.
 #include <string.h>
 #include <stdbool.h>
 #include <float.h>
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 

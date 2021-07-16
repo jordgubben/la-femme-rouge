@@ -7,6 +7,7 @@ La Femme Rough - An minimal graph based scripting system for games.
 //// LFR Base types ////
 
 typedef struct lfr_vec2_ { float x,y; } lfr_vec2_t;
+#define LFR_VEC2_ORIGO ((lfr_vec2_t) { 0, 0})
 
 typedef enum lfr_variant_type_ {
 	lfr_nil_type,
@@ -38,6 +39,7 @@ typedef enum lfr_instruction_ {
 	lfr_add,
 	lfr_sub,
 	lfr_mul,
+	lfr_distance,
 	lfr_print_value,
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
@@ -997,6 +999,28 @@ void lfr_mul_proc(lfr_node_id_t node_id,
 
 
 /**
+Calculate the distance between two vec2.
+**/
+void lfr_distance_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
+		const lfr_graph_t* graph) {
+
+	if (input[0].type == lfr_vec2_type && input[1].type == lfr_vec2_type) {
+		lfr_vec2_t a = input[0].vec2_value;
+		lfr_vec2_t b = input[1].vec2_value;
+		float dx = a.x - b.x, dy = a.y - b.y;
+		float l = sqrtf(dx * dx + dy * dy);
+		output[0] = lfr_float(l);
+	} else {
+		fprintf(stderr,
+			"Distance node [#%u|%u] recieved an unsuported input type combination.",
+			node_id.id, lfr_get_node_index(node_id, &graph->nodes));
+	}
+}
+
+
+/**
 Print value to stdout.
 **/
 void lfr_print_value_proc(lfr_node_id_t node_id,
@@ -1037,6 +1061,13 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 	{"mul", lfr_mul_proc,
 		{{"A", {lfr_float_type, .float_value = 0}}, {"B", {lfr_float_type, .float_value = 0}}},
 		{{"PROD", {lfr_float_type, .float_value = 0}}}
+	},
+	{"distance", lfr_distance_proc,
+		{
+			{"A", {lfr_vec2_type, .vec2_value = LFR_VEC2_ORIGO}},
+			{"B", {lfr_vec2_type, .vec2_value = LFR_VEC2_ORIGO}}
+		},
+		{{"DIST", {lfr_float_type, .float_value = 0}}}
 	},
 	{"print_value", lfr_print_value_proc,
 		{{"VAL", {lfr_float_type, .float_value = 0}}},
