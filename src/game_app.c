@@ -321,9 +321,10 @@ int main( int argc, char** argv) {
 		lfr_link_data(n1, 0, n2, 1, &graph);
 	}
 
-	// Script stepping timer
-	double last_step_time = glfwGetTime();
-	const double time_between_steps = 1.f;
+	// Script stepping and ticking timers
+	double last_step_time = glfwGetTime(), last_tick_time = last_step_time;
+	const double time_between_steps = .1f;
+	const double time_between_ticks = 1.f;
 
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(win)) {
@@ -352,8 +353,18 @@ int main( int argc, char** argv) {
 			pop.cursor_world_pos = cursor_pos;
 		}
 
-		// Take a step through the graph now and then
+		// Curent time
 		double now = glfwGetTime();
+
+		// Schedule tick
+		while (now > last_tick_time + time_between_ticks) {
+			last_tick_time += time_between_ticks;
+			lfr_schedule_instruction(lfr_tick, &graph, &graph_state);
+		}
+
+		// Take a step through gradually
+		// Intentionally making this relatively slow so that is's easier to see what happens.
+		// A "real" implementation will most likely want to process all scheduled nodes every frame.
 		while (now  > last_step_time + time_between_steps) {
 			last_step_time += time_between_steps;
 			lfr_step(&vm, &graph, &graph_state);

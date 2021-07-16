@@ -35,8 +35,23 @@ float lfr_to_float(lfr_variant_t);
 
 //// LFR Instructions ////
 
+/**
+Core instuctions are all the instuctions that LFR supports "out of the box".
+
+As LFR makes few assumptions about the host application,
+so the feature set is  intentionally limited to instructions for:
+
+ - Flow control
+ - Math
+ - Debugging
+
+Implementation note:
+Actuall implementations are listed in the hidden global constant `lfr_core_instructions_`.
+The order of instructions must be the same in both places.
+**/
 typedef enum lfr_instruction_ {
 	lfr_print_own_id,
+	lfr_tick,
 	lfr_randomize_number,
 	lfr_add,
 	lfr_sub,
@@ -217,6 +232,7 @@ lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned slot,
 
 //// LFR script execution ////
 
+void lfr_schedule_instruction(unsigned instruction, const lfr_graph_t *, lfr_graph_state_t *);
 void lfr_schedule(lfr_node_id_t, const lfr_graph_t *, lfr_graph_state_t *);
 int lfr_step(const lfr_vm_t *, const lfr_graph_t *, lfr_graph_state_t *);
 lfr_result_e lfr_process_node_instruction(unsigned inst, lfr_node_id_t,
@@ -263,6 +279,22 @@ lfr_result_e lfr_process_node_instruction(unsigned inst, lfr_node_id_t,
 
 
 //// LFR script execution ////
+
+/**
+Schedule all nodes with the given instruction for processing.
+
+This is usefull for start of flows this should be scheduled ever so often.
+The instruction `lfr_tick`exists for this purpouse.
+If you need to suport multiple intervalls (eg. every frame and every second)
+then it's probably best to introduce your own custom instructions.
+**/
+void lfr_schedule_instruction(unsigned instruction, const lfr_graph_t *graph, lfr_graph_state_t *state) {
+	T_FOR_ROWS(node_index, graph->nodes) {
+		unsigned node_instruction = graph->nodes.node[node_index].instruction;
+		if (instruction != node_instruction) { continue; }
+		lfr_schedule(T_ID(graph->nodes, node_index), graph, state);
+	}
+}
 
 /**
 Enqueue a node to process to the script executions todo-list (as long as there is space left in the queue).
@@ -956,6 +988,29 @@ lfr_result_e lfr_print_own_id_proc(lfr_node_id_t node_id,
 }
 
 
+/**
+Instruction: `tick`
+
+Pseudo-instruction that does nothing and always succeeds.
+Use this "instruction" to trigger a script i flow at some regular interval.
+
+Example usage:
+```C
+time_since_last_tick += delta_time;
+while (time_since_last_tick > tick_limit) {
+	lfr_schedule_instruction(lfr_tick, graph, state);
+	time_since_last_tick -= tick_limit;
+}
+```
+**/
+lfr_result_e lfr_tick_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
+		const lfr_graph_t* graph) {
+
+	return lfr_continue;
+}
+
 lfr_result_e lfr_randomize_number_proc(lfr_node_id_t node_id,
 		lfr_variant_t input[], lfr_variant_t output[],
 		void *custom_data,
@@ -1104,6 +1159,7 @@ Note:
 **/
 static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructions] = {
 	{"print_own_id", lfr_print_own_id_proc, {}, {}},
+	{"tick", lfr_tick_proc, {}, {}},
 	{"randomize_number", lfr_randomize_number_proc,
 		{},
 		{{"RND float",  {lfr_float_type, .float_value = 0 }}}
