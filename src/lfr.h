@@ -31,6 +31,8 @@ lfr_variant_t lfr_float(float v) { return (lfr_variant_t) {lfr_float_type, .floa
 lfr_variant_t lfr_vec2(lfr_vec2_t v) { return (lfr_variant_t) { lfr_vec2_type, .vec2_value = v}; }
 lfr_variant_t lfr_vec2_xy(float x, float y) { return lfr_vec2((lfr_vec2_t){x,y}); }
 
+float lfr_to_float(lfr_variant_t);
+
 //// LFR Instructions ////
 
 typedef enum lfr_instruction_ {
@@ -41,6 +43,7 @@ typedef enum lfr_instruction_ {
 	lfr_mul,
 	lfr_distance,
 	lfr_print_value,
+	lfr_if_between,
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
@@ -290,12 +293,21 @@ int lfr_step(const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *st
 	// Process instruction
 	lfr_result_e result = lfr_process_node_instruction(instruction, node_id, vm, graph, state);
 
-	// Enqueue nodes - Continue flow throgh graph
-	for (int i =0; i < graph->num_flow_links; i++) {
-		const lfr_flow_link_t * link = &graph->flow_links[i];
-		if (T_SAME_ID(link->source_node, node_id)) {
-			lfr_schedule(link->target_node, graph, state);
+	// Enqueue different nodes depending on processing result
+	switch(result) {
+	case lfr_continue: {
+		// All clear - Continue flow throgh graph
+		for (int i =0; i < graph->num_flow_links; i++) {
+			const lfr_flow_link_t * link = &graph->flow_links[i];
+			if (T_SAME_ID(link->source_node, node_id)) {
+				lfr_schedule(link->target_node, graph, state);
+			}
 		}
+	}break;
+	case lfr_halt: {
+		//Stop flow here - Do nothing
+	} break;
+	case lfr_no_results: { assert(0); } break;
 	}
 
 	// Shuffle queue (inefficient)
@@ -1061,6 +1073,30 @@ lfr_result_e lfr_print_value_proc(lfr_node_id_t node_id,
 
 
 /**
+Only continue if value is within permitted range
+**/
+lfr_result_e lfr_if_between_proc(lfr_node_id_t node_id,
+		lfr_variant_t input[], lfr_variant_t output[],
+		void *custom_data,
+		const lfr_graph_t* graph) {
+
+	if (input[0].type == lfr_float_type) {
+		float val = input[0].float_value;
+		float min = lfr_to_float(input[1]);
+		float max = lfr_to_float(input[2]);
+		if (min <= val && val <= max) {
+			return lfr_continue;
+		}
+	} else {
+		fprintf(stderr,
+			"If node [#%u|%u] recieved an unsuported input type in VAL.",
+			node_id.id, lfr_get_node_index(node_id, &graph->nodes));
+	}
+	return lfr_halt;
+}
+
+
+/**
 Look up table of all core instructions.
 
 Note:
@@ -1093,6 +1129,14 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 	},
 	{"print_value", lfr_print_value_proc,
 		{{"VAL", {lfr_float_type, .float_value = 0}}},
+		{}
+	},
+	{"if_between", lfr_if_between_proc,
+		{
+			{"VAL", {lfr_float_type, .float_value = 0}},
+			{"MIN", {lfr_float_type, .float_value = 0}},
+			{"MAX", {lfr_float_type, .float_value = 0}}
+		},
 		{}
 	},
 };
@@ -1257,6 +1301,22 @@ lfr_variant_t lfr_get_output_value(lfr_node_id_t id, unsigned slot,
 
 	// Otherwise return default
 	return lfr_get_default_output_value(id, slot, vm, &graph->nodes);
+}
+
+
+//// Variant utils. ////
+
+/**
+Convert all variant types to a float.
+**/
+float lfr_to_float(lfr_variant_t var) {
+	switch(var.type) {
+	case lfr_nil_type: return 0;
+	case lfr_int_type: return (float) var.int_value;
+	case lfr_float_type: return var.float_value;
+	case lfr_vec2_type: return var.vec2_value.x;
+	case lfr_no_core_types: assert(0); return 0;
+	}
 }
 
 #undef T_HAS_ID
