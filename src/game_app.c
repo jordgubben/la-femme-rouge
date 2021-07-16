@@ -35,6 +35,8 @@ LFR Scripting "game" used to demonstrate how to integrate LFR with an existing a
 #include "lfr.h"
 #include "lfr_editor.h"
 
+// Debug helpers
+#define SHOW_CURSOR_DEBUG 1
 
 // Shader program
 
@@ -282,6 +284,35 @@ int main( int argc, char** argv) {
 
 		// LFR editor
 		lfr_show_editor(&editor, &vm, &graph, &graph_state);
+
+#if SHOW_CURSOR_DEBUG
+		// Debug window
+		if (nk_begin(ctx, "Mouse info", nk_rect(25,435, 400,200), NK_WINDOW_TITLE | NK_WINDOW_MOVABLE)) {
+			nk_layout_row_dynamic(ctx, 0, 3);
+			const struct nk_mouse *m = &ctx->input.mouse;
+
+			// Position
+			nk_label(ctx, "pos", NK_TEXT_LEFT);
+			nk_propertyf(ctx, "#pos.x", 0, m->pos.x, FLT_MAX, 1,1);
+			nk_propertyf(ctx, "#pos.y", 0, m->pos.y, FLT_MAX, 1,1);
+
+			// Prev
+			nk_label(ctx, "prev", NK_TEXT_LEFT);
+			nk_propertyf(ctx, "#prev.x", 0, m->prev.x, FLT_MAX, 1,1);
+			nk_propertyf(ctx, "#prev.y", 0, m->prev.y, FLT_MAX, 1,1);
+
+			// Delta
+			nk_label(ctx, "delta", NK_TEXT_LEFT);
+			nk_propertyf(ctx, "#delta.x", 0, m->delta.x, FLT_MAX, 1,1);
+			nk_propertyf(ctx, "#delta.y", 0, m->delta.y, FLT_MAX, 1,1);
+
+			// Scroll Delta
+			nk_label(ctx, "scroll_delta", NK_TEXT_LEFT);
+			nk_propertyf(ctx, "#scroll_d.x", 0, m->scroll_delta.x, FLT_MAX, 1,1);
+			nk_propertyf(ctx, "#scroll_d.y", 0, m->scroll_delta.y, FLT_MAX, 1,1);
+		}
+		nk_end(ctx);
+#endif
 
 		// Prepare rendering
 		int width, height;
