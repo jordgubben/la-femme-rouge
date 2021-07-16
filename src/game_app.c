@@ -126,7 +126,7 @@ enum {
 
 typedef struct population_ {
 	vec2_t actor_positions[num_actors_in_world];
-
+	vec2_t cursor_world_pos;
 } population_t;
 
 //// Games custom instructions ////
@@ -272,6 +272,31 @@ int main( int argc, char** argv) {
 
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(win)) {
+		// Set cursor pos (in world space)
+		{
+			// Window size
+			int window_width, window_height;
+			glfwGetWindowSize(win, &window_width, &window_height);
+
+			// Viewport aspect ratio
+			const float r = ((float) window_width)/((float) window_height * 0.5f);
+
+			// World viewport cursor posision
+			double mouse_x, mouse_y;
+			glfwGetCursorPos(win, &mouse_x, &mouse_y);
+			mouse_y -= window_height/2;
+
+			// World cursor pos
+			vec2_t cursor_pos = {
+				((float) mouse_x / ((float) window_width)),
+				((float) mouse_y / (float) (window_height * 0.5f))
+				};
+			cursor_pos.x = cursor_pos.x * 2.f -1.f;
+			cursor_pos.y = cursor_pos.y * 2.f -1.f;
+			cursor_pos.x *= r;
+			pop.cursor_world_pos = cursor_pos;
+		}
+
 		// Take a step through the graph now and then
 		double now = glfwGetTime();
 		while (now  > last_step_time + time_between_steps) {
@@ -310,6 +335,11 @@ int main( int argc, char** argv) {
 			nk_label(ctx, "scroll_delta", NK_TEXT_LEFT);
 			nk_propertyf(ctx, "#scroll_d.x", 0, m->scroll_delta.x, FLT_MAX, 1,1);
 			nk_propertyf(ctx, "#scroll_d.y", 0, m->scroll_delta.y, FLT_MAX, 1,1);
+
+			// Cursor world pos
+			nk_label(ctx, "World pos", NK_TEXT_LEFT);
+			nk_propertyf(ctx, "#world.x", -FLT_MAX, pop.cursor_world_pos.x, +FLT_MAX, 1,1);
+			nk_propertyf(ctx, "#world.y", -FLT_MAX, pop.cursor_world_pos.y, +FLT_MAX, 1,1);
 		}
 		nk_end(ctx);
 #endif
@@ -329,11 +359,11 @@ int main( int argc, char** argv) {
 		// (So that the custom controls have something to manipulate)
 		for (int i = 0; i < num_actors_in_world; i++) {
 			vec2_t pos = pop.actor_positions[i];
-			const float r = ((float) height *0.5)/ ((float)width);
-			const float s = 0.2;
+			const float r = ((float) width)/((float) height *0.5);
+			const float s = 0.2f;
 			const mat4_t transform = {
-				s, 0, 0, pos.x,
-				0, s/r, 0, pos.y/r,
+				s/r, 0, 0, pos.x/r,
+				0, s, 0, pos.y,
 				0, 0,.5, 0,
 				0, 0, 0, 1
 			};
