@@ -1,11 +1,20 @@
-node	#1	distance	(300.000000, 132.000000)
-node	#2	if_between	(590.000000, 28.000000)
-node	#3	print_value	(788.000000, 383.000000)
+node	#1	distance	(572.000000, 48.000000)
+node	#2	if_between	(1023.000000, 40.000000)
+node	#3	print_value	(1349.000000, 127.000000)
+node	#4	get_actor_position	(34.000000, 37.000000)
+node	#5	get_actor_position	(286.000000, 96.000000)
+node	#6	set_actor_position	(1642.000000, 36.000000)
+data	#4:0 -> #1:0
+data	#5:0 -> #1:1
 data	#1:0 -> #2:0
 data	#1:0 -> #3:0
-value	#1:0 =	vec2 (0.000000, 0.000000)
-value	#1:1 =	vec2 (-4.000000, -3.000000)
 value	#2:1 =	float 0.000000
-value	#2:2 =	float 5.000000
+value	#2:2 =	float 0.250000
+value	#5:0 =	int 1
+value	#6:0 =	int 3
+value	#6:1 =	vec2 (0.600000, 0.100000)
 link	#1 -> #2
 link	#2 -> #3
+link	#4 -> #1
+link	#5 -> #1
+link	#2 -> #6
