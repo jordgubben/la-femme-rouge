@@ -1,7 +1,11 @@
-node	#1	randomize_number	(32.000000, 55.000000)
-node	#2	mul	(318.000000, 271.000000)
-node	#3	sub	(596.000000, 49.000000)
-node	#4	add	(755.000000, 277.000000)
+node	#1	randomize_number
+node	#2	mul
+node	#3	sub
+node	#4	add
+place	#1	(32.000000, 55.000000)
+place	#2	(318.000000, 271.000000)
+place	#3	(596.000000, 49.000000)
+place	#4	(755.000000, 277.000000)
 data	#1:0 -> #2:0
 data	#2:0 -> #3:0
 data	#3:0 -> #4:0

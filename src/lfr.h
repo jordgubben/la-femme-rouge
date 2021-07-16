@@ -110,6 +110,7 @@ void lfr_remove_node_from_table(lfr_node_id_t, lfr_node_table_t *);
 
 // Node serialization
 int lfr_save_nodes_in_table_to_file(const lfr_node_table_t*, const lfr_vm_t *, FILE * restrict stream);
+int lfr_save_node_placements_in_table_to_file(const lfr_node_table_t*, const lfr_vm_t *, FILE * restrict stream);
 int lfr_save_data_links_in_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
 int lfr_save_fixed_values_in_table_to_file(const lfr_node_table_t*, FILE * restrict stream);
 
@@ -627,15 +628,19 @@ void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t *vm, lfr_gr
 			// Parse instruction
 			lfr_node_id_t id;
 			char inst_buf[32];
-			lfr_vec2_t pos;
-			sscanf(line_buf, "node #%u %s (%f,%f)", &id.id, inst_buf, &pos.x, &pos.y);
+			sscanf(line_buf, "node #%u %32s", &id.id, inst_buf);
 
-			// Add instruction
+			// Add instruction node
 			lfr_instruction_e instruction = lfr_find_instruction_from_name(inst_buf, vm);
 			lfr_node_id_t tmp_id = lfr_insert_node_into_table(instruction, &graph->nodes);
 			if (!T_SAME_ID(tmp_id, id)) {
 				lfr_change_node_id_in_table(tmp_id, id, &graph->nodes);
 			}
+
+		} else if (strcmp(type_buf, "place") == 0) {
+			lfr_node_id_t id;
+			lfr_vec2_t pos;
+			sscanf(line_buf, "place #%u (%f,%f)", &id.id, &pos.x, &pos.y);
 			lfr_set_node_position(id, pos, &graph->nodes);
 
 		} else if (strcmp(type_buf, "data") == 0) {
@@ -702,6 +707,7 @@ int lfr_save_graph_to_file(const lfr_graph_t *graph, const lfr_vm_t *vm, FILE * 
 
 	// Dump things
 	char_count += lfr_save_nodes_in_table_to_file(&graph->nodes, vm, stream);
+	char_count += lfr_save_node_placements_in_table_to_file(&graph->nodes, vm, stream);
 	char_count += lfr_save_data_links_in_table_to_file(&graph->nodes, stream);
 	char_count += lfr_save_fixed_values_in_table_to_file(&graph->nodes, stream);
 	char_count += lfr_save_flow_links_to_file(graph, stream);
@@ -895,7 +901,35 @@ int lfr_save_nodes_in_table_to_file(const lfr_node_table_t *table, const lfr_vm_
 		char_count += fprintf(stream, "#%u\t", node_id.id);
 
 		// Instruction
-		char_count += fprintf(stream, "%s\t", lfr_get_instruction_name(table->node[index].instruction, vm));
+		const char *instruction_name = lfr_get_instruction_name(table->node[index].instruction, vm);
+		char_count += fprintf(stream, "%s", instruction_name);
+
+		char_count += fprintf(stream, "\n");
+	}
+
+	return char_count;
+}
+
+
+/**
+Print node placements in table onto file stream in a parser friendly (tab separated) format.
+
+Design note:
+Storing placements at a separate row shold make diffs easier to understand.
+**/
+int lfr_save_node_placements_in_table_to_file(
+		const lfr_node_table_t *table,
+		const lfr_vm_t *vm,
+		FILE * restrict stream) {
+	assert(table && vm && stream);
+	int char_count = 0;
+
+	T_FOR_ROWS(index, *table) {
+		char_count += fprintf(stream, "place\t");
+
+		// ID
+		lfr_node_id_t node_id = T_ID(*table,index);
+		char_count += fprintf(stream, "#%u\t", node_id.id);
 
 		// Position
 		lfr_vec2_t pos = lfr_get_node_position(node_id, table);

@@ -1,11 +1,19 @@
-node	#1	distance	(572.000000, 48.000000)
-node	#2	if_between	(864.000000, 31.000000)
-node	#10	add	(1387.000000, 60.000000)
-node	#4	get_actor_position	(34.000000, 37.000000)
-node	#5	get_cursor_position	(302.000000, 76.000000)
-node	#7	set_actor_scale	(1670.000000, 40.000000)
-node	#8	mul	(1125.000000, 90.000000)
-node	#9	tick	(39.000000, 401.000000)
+node	#1	distance
+node	#2	if_between
+node	#10	add
+node	#4	get_actor_position
+node	#5	get_cursor_position
+node	#7	set_actor_scale
+node	#8	mul
+node	#9	tick
+place	#1	(572.000000, 48.000000)
+place	#2	(864.000000, 31.000000)
+place	#10	(1387.000000, 60.000000)
+place	#4	(34.000000, 37.000000)
+place	#5	(302.000000, 76.000000)
+place	#7	(1670.000000, 40.000000)
+place	#8	(1125.000000, 90.000000)
+place	#9	(39.000000, 401.000000)
 data	#4:0 -> #1:0
 data	#5:0 -> #1:1
 data	#1:0 -> #2:0
