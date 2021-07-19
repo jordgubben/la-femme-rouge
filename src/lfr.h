@@ -31,6 +31,8 @@ lfr_variant_t lfr_float(float v) { return (lfr_variant_t) {lfr_float_type, .floa
 lfr_variant_t lfr_vec2(lfr_vec2_t v) { return (lfr_variant_t) { lfr_vec2_type, .vec2_value = v}; }
 lfr_variant_t lfr_vec2_xy(float x, float y) { return lfr_vec2((lfr_vec2_t){x,y}); }
 
+#define LFR_FLOAT(v) {lfr_float_type, .float_value = 0 }
+
 float lfr_to_float(lfr_variant_t);
 int lfr_to_int(lfr_variant_t);
 
@@ -61,6 +63,7 @@ typedef enum lfr_instruction_ {
 	lfr_print_value,
 	lfr_if_between,
 	lfr_repeat,
+	lfr_delay,
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
@@ -1316,6 +1319,29 @@ lfr_result_e lfr_repeat_proc(lfr_variant_t input[], lfr_variant_t output[], lfr_
 
 
 /**
+Instruction: `delay`
+
+Waits untill the given ammount of time has passed.
+**/
+lfr_result_e lfr_delay_proc(lfr_variant_t input[], lfr_variant_t output[], lfr_process_env_i *env) {
+	// Store limit in milliseconds if this is the first iteration
+	if (env->work == 0) {
+		float limit = env->time + lfr_to_float(input[0]);
+		env->work = (int)limit * 1000;
+		return lfr_wait;
+	}
+
+	// Continue flow if the time limit has passed
+	if (env->work < env->time * 1000) {
+		return lfr_continue;
+	}
+
+	// Otherwise wait some more
+	return lfr_wait;
+}
+
+
+/**
 Look up table of all core instructions.
 
 Note:
@@ -1362,6 +1388,10 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 	},
 	{"repeat", lfr_repeat_proc,
 		{{"TIMES", {lfr_int_type, .int_value = 0}}},
+		{}
+	},
+	{"delay", lfr_delay_proc,
+		{{"TIME", LFR_FLOAT(0.f)}},
 		{}
 	},
 };
@@ -1563,6 +1593,9 @@ lfr_variant_t lfr_get_output_value(lfr_node_id_t id, unsigned slot,
 
 /**
 Forward the current time of graph state by the diven amount.
+
+Intenals:
+Used by the `delay` core instruction.
 **/
 void lfr_forward_state_time(float dt, lfr_graph_state_t *state) {
 	assert(state);
