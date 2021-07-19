@@ -187,7 +187,10 @@ void show_individual_node_window(
 
 		// Data (input and output)
 		{
-			nk_layout_row_dynamic(ctx, 150, 2);
+			unsigned num_in = lfr_count_node_inputs(node_id, vm, graph);
+			unsigned num_out = lfr_count_node_outputs(node_id, vm, graph);
+			unsigned num_max = num_in > num_out ? num_in : num_out;
+			nk_layout_row_dynamic(ctx, 30 + 90 * num_max, 2);
 			show_node_input_slots_group(node_id, vm, state, graph, app);
 			show_node_output_slots_group(node_id, vm, state, graph, app);
 		}

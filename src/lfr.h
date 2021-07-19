@@ -152,6 +152,10 @@ void lfr_link_data(lfr_node_id_t, unsigned, lfr_node_id_t, unsigned, lfr_graph_t
 void lfr_unlink_input_data(lfr_node_id_t, unsigned, lfr_graph_t*);
 void lfr_unlink_output_data(lfr_node_id_t, unsigned, lfr_graph_t*);
 
+// Node signatures
+unsigned lfr_count_node_inputs(lfr_node_id_t, const lfr_vm_t *, lfr_graph_t *);
+unsigned lfr_count_node_outputs(lfr_node_id_t, const lfr_vm_t *, lfr_graph_t *);
+
 // Graph serialization
 void lfr_load_graph_from_file_path(const char *, const lfr_vm_t *, lfr_graph_t *);
 void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t *, lfr_graph_t *);
@@ -183,10 +187,17 @@ typedef struct lfr_vm_ {
 	void *custom_data;
 } lfr_vm_t;
 
+// Name
 lfr_instruction_e lfr_find_instruction_from_name(const char* name, const lfr_vm_t *);
 const char* lfr_get_instruction_name(unsigned, const lfr_vm_t *);
 const char* lfr_get_core_instruction_name(lfr_instruction_e, const lfr_vm_t *);
 const char* lfr_get_custom_instruction_name(unsigned, const lfr_vm_t *);
+
+// Signature
+unsigned lfr_count_instruction_inputs(unsigned, const lfr_vm_t*);
+unsigned lfr_count_instruction_outputs(unsigned, const lfr_vm_t*);
+
+// Instruction desctiptions
 const struct lfr_instruction_def_* lfr_get_instruction(unsigned, const lfr_vm_t *);
 const struct lfr_instruction_def_* lfr_get_core_instruction(lfr_instruction_e, const lfr_vm_t *);
 const struct lfr_instruction_def_* lfr_get_custom_instruction(unsigned, const lfr_vm_t *);
@@ -596,6 +607,26 @@ void lfr_unlink_output_data(lfr_node_id_t out_node, unsigned out_slot, lfr_graph
 			node->input_data[in_slot].slot = 0;
 		}
 	}
+}
+
+
+/**
+Count number of *inputs* of the instruction of the given node.
+**/
+unsigned lfr_count_node_inputs(lfr_node_id_t id, const lfr_vm_t *vm, lfr_graph_t *graph) {
+	assert(vm && graph);
+	const lfr_node_t *node = &graph->nodes.node[T_INDEX(graph->nodes, id)];
+	return lfr_count_instruction_inputs(node->instruction, vm);
+}
+
+
+/**
+Count number of *outputs* of the instruction of the given node.
+**/
+unsigned lfr_count_node_outputs(lfr_node_id_t id, const lfr_vm_t *vm, lfr_graph_t *graph) {
+	assert(vm && graph);
+	const lfr_node_t *node = &graph->nodes.node[T_INDEX(graph->nodes, id)];
+	return lfr_count_instruction_outputs(node->instruction, vm);
 }
 
 
@@ -1230,6 +1261,38 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 		{}
 	},
 };
+
+
+//// LFR Instruction definitions ////
+
+/**
+Count number of *inputs* in this instructions signature.
+**/
+unsigned lfr_count_instruction_inputs(unsigned instruction, const lfr_vm_t *vm) {
+	unsigned count = 0;
+	const lfr_instruction_def_t *def = lfr_get_instruction(instruction, vm);
+	for (int slot = 0; slot < lfr_signature_size; slot++) {
+		if (def->input_signature[slot].data.type != lfr_nil_type) {
+			count++;
+		}
+	}
+	return count;
+}
+
+
+/**
+Count number of *outputs* in this instructions signature.
+**/
+unsigned lfr_count_instruction_outputs(unsigned instruction, const lfr_vm_t *vm) {
+	unsigned count = 0;
+	const lfr_instruction_def_t *def = lfr_get_instruction(instruction, vm);
+	for (int slot = 0; slot < lfr_signature_size; slot++) {
+		if (def->output_signature[slot].data.type != lfr_nil_type) {
+			count++;
+		}
+	}
+	return count;
+}
 
 
 /**
