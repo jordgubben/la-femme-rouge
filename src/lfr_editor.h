@@ -80,16 +80,36 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 	assert(app && graph && state);
 	struct nk_context *ctx = app->ctx;
 
-	// Show nodes as individual windows
-	lfr_node_id_t *node_ids = &graph->nodes.dense_id[0];
-	int num_nodes = graph->nodes.num_rows;
-	for (int index = 0; index < num_nodes; index++) {
-		lfr_node_id_t node_id = node_ids[index];
-		show_individual_node_window(node_id, vm, graph, state, app);
-	}
+	if (nk_begin(ctx, "Editor window", app->outer_bounds, NK_WINDOW_TITLE | NK_WINDOW_SCALABLE)) {
+		// Draw lines
+		{
+			struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+			draw_flow_link_lines(app, graph, canvas);
+			draw_data_link_lines(app, graph, canvas);
+			draw_link_selection_curve(app, graph, canvas);
+			show_node_creation_contextual_menu(vm, ctx, graph);
+		}
 
-	// Show node flow et.al.
-	show_editor_bg_window(graph, vm, app);
+		// Show nodes as space layout groups
+		int num_nodes = graph->nodes.num_rows;
+		nk_layout_space_begin(ctx, NK_STATIC, app->outer_bounds.h, num_nodes);
+
+		lfr_node_id_t *node_ids = &graph->nodes.dense_id[0];
+		for (int index = 0; index < num_nodes; index++) {
+			lfr_node_id_t node_id = node_ids[index];
+
+			// Layout
+			lfr_vec2_t pos = lfr_get_node_position(node_id, &graph->nodes);
+			struct nk_rect group_placement = {pos.x, pos.y, 200, 200};
+			nk_layout_space_push(ctx, group_placement);
+
+			show_individual_node_window(node_id, vm, graph, state, app);
+		}
+
+		nk_layout_space_end(ctx);
+
+	}
+	nk_end(ctx);
 
 	// Remove node that has recently had it's window closed
 	// (Avoid pain by waitning until after cycling through nodes before removing one)
@@ -120,6 +140,7 @@ void show_individual_node_window(
 		lfr_editor_t *app) {
 	assert(graph && state && app);
 	struct nk_context *ctx = app->ctx;
+	struct nk_panel *group_panel;
 
 	unsigned index = lfr_get_node_index(node_id, &graph->nodes);
 
@@ -149,7 +170,9 @@ void show_individual_node_window(
 		| NK_WINDOW_SCALABLE
 		| NK_WINDOW_TITLE
 		;
-	if (nk_begin_titled(ctx, name, title, rect, flags)) {
+	if (nk_group_begin_titled(ctx, name, title, flags)) {
+		group_panel = nk_window_get_panel(ctx);
+
 		if (nk_tree_push_id(ctx, NK_TREE_NODE, "Main flow", NK_MINIMIZED, node_id.id)){
 			// Add new links
 			if (app->mode == em_normal) {
@@ -220,12 +243,13 @@ void show_individual_node_window(
 			lfr_schedule_node(node_id, graph, state);
 		}
 
-		// Update node position
-		struct nk_vec2 p = nk_window_get_position(ctx);
-		lfr_vec2_t node_pos = {p.x, p.y};
-		lfr_set_node_position(node_id, node_pos, &graph->nodes);
+		nk_group_end(ctx);
 	}
-	nk_end(ctx);
+
+	// Update node position
+	struct nk_rect group_bounds = nk_layout_space_rect_to_local(ctx, group_panel->bounds);
+	lfr_vec2_t node_pos = {group_bounds.x, group_bounds.y};
+	lfr_set_node_position(node_id, node_pos, &graph->nodes);
 }
 
 
