@@ -104,6 +104,10 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 	}
 }
 
+// Tmp. Layout constants (undefined when no longer needed)
+#define LFR_SLOT_NAME_ROW_H 18
+#define LFR_SLOT_VALUE_ROW_H 28
+#define LFR_SLOT_H (30 + LFR_SLOT_NAME_ROW_H +  LFR_SLOT_VALUE_ROW_H)
 
 /**
 Show the window for an individual graph node.
@@ -185,13 +189,17 @@ void show_individual_node_window(
 			}
 		}
 
-		// Data (input and output)
-		{
-			unsigned num_in = lfr_count_node_inputs(node_id, vm, graph);
-			unsigned num_out = lfr_count_node_outputs(node_id, vm, graph);
-			unsigned num_max = num_in > num_out ? num_in : num_out;
-			nk_layout_row_dynamic(ctx, 30 + 90 * num_max, 2);
+		// Data input slots
+		unsigned num_inputs = lfr_count_node_inputs(node_id, vm, graph);
+		if (num_inputs >0) {
+			nk_layout_row_dynamic(ctx, 30 + LFR_SLOT_H * num_inputs, 1);
 			show_node_input_slots_group(node_id, vm, state, graph, app);
+		}
+
+		// Data output slots
+		unsigned num_outputs = lfr_count_node_outputs(node_id, vm, graph);
+		if (num_outputs > 0) {
+			nk_layout_row_dynamic(ctx, 30 + LFR_SLOT_H * num_outputs, 1);
 			show_node_output_slots_group(node_id, vm, state, graph, app);
 		}
 
@@ -295,7 +303,7 @@ void show_node_input_slots_group(
 		if (!name) { continue; };
 
 		// Name (+ dummy buttons)
-		nk_layout_row_template_begin(ctx, 15);
+		nk_layout_row_template_begin(ctx, LFR_SLOT_NAME_ROW_H);
 		nk_layout_row_template_push_static(ctx, 40);
 		nk_layout_row_template_push_dynamic(ctx);
 		nk_layout_row_template_end(ctx);
@@ -333,8 +341,8 @@ void show_node_input_slots_group(
 
 		// Current input value (linked or fixed)
 		// (Set a new value if it's changed by the UI, and breaks any link))
-		nk_layout_row_dynamic(ctx, 0, 1);
 		const lfr_variant_t data = lfr_get_input_value(node_id, slot, vm, graph, state);
+		nk_layout_row_dynamic(ctx, LFR_SLOT_VALUE_ROW_H, data.type == lfr_vec2_type ? 2 : 1);
 		switch(data.type) {
 		case lfr_nil_type: {
 			nk_label(ctx, "---", NK_TEXT_RIGHT);
@@ -353,8 +361,8 @@ void show_node_input_slots_group(
 		} break;
 		case lfr_vec2_type: {
 			// Set a new value if it's changed by the UI (breaks link)
-			float new_x = nk_propertyf(ctx, "#=", -FLT_MAX, data.vec2_value.x, +FLT_MAX, 1, 1);
-			float new_y = nk_propertyf(ctx, "#=", -FLT_MAX, data.vec2_value.y, +FLT_MAX, 1, 1);
+			float new_x = nk_propertyf(ctx, "#x =", -FLT_MAX, data.vec2_value.x, +FLT_MAX, 1, 1);
+			float new_y = nk_propertyf(ctx, "#y =", -FLT_MAX, data.vec2_value.y, +FLT_MAX, 1, 1);
 			if (data.vec2_value.x != new_x || data.vec2_value.y != new_y) {
 				lfr_set_fixed_input_value(node_id, slot, lfr_vec2_xy(new_x, new_y), &graph->nodes);
 			}
@@ -396,7 +404,7 @@ void show_node_output_slots_group(
 		if (!name) { continue; }
 
 		// Name (+ dummy buttons)
-		nk_layout_row_template_begin(ctx, 15);
+		nk_layout_row_template_begin(ctx, LFR_SLOT_NAME_ROW_H);
 		nk_layout_row_template_push_dynamic(ctx);
 		if (app->mode == em_select_data_link_output) {
 			nk_layout_row_template_push_static(ctx, 40);
@@ -439,7 +447,7 @@ void show_node_output_slots_group(
 			(lfr_vec2_t) {panel->bounds.x + panel->bounds.w + 30, panel->at_y + 15/2};
 
 		// Value
-		nk_layout_row_dynamic(ctx, 0, 1);
+		nk_layout_row_dynamic(ctx, LFR_SLOT_VALUE_ROW_H, 1);
 		char label_buf[32];
 		switch (data.type) {
 		case lfr_nil_type: {
@@ -462,6 +470,10 @@ void show_node_output_slots_group(
 	nk_group_end(ctx);
 }
 
+
+#undef LFR_SLOT_NAME_ROW_H
+#undef LFR_SLOT_VALUE_ROW_H
+#undef LFR_SLOT_H
 
 /**
 Show background window with flow lines, link selection and context menu for creating new nodes.
