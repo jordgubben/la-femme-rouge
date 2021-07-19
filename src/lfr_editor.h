@@ -662,6 +662,8 @@ void lfr_show_debug(struct nk_context *ctx, lfr_graph_t *graph, lfr_graph_state_
 	if (nk_begin(ctx, "Queued nodes", nk_rect(500,500, 300, 200), window_flags)) {
 		nk_layout_row_dynamic(ctx, 0, 1);
 
+		nk_property_float(ctx, "Time", 0, &state->time, FLT_MAX, 1,1);
+
 		// Scheduled first
 		nk_label(ctx, "Scheduled", NK_TEXT_LEFT);
 		for (int i = 0 ; i < state->num_schedueled_nodes; i++) {

@@ -180,6 +180,7 @@ typedef struct lfr_process_env_ {
 	lfr_graph_state_t *graph_state;
 
 	// Surroundings
+	const float time;
 	void *custom_data;
 } lfr_process_env_i;
 
@@ -473,7 +474,7 @@ lfr_result_e lfr_process_node_instruction(unsigned instruction, lfr_node_id_t no
 
 	// Process instruction
 	const lfr_instruction_def_t *def = lfr_get_instruction(instruction, vm);
-	lfr_process_env_i env = { node_id, graph, *work, state, vm->custom_data};
+	lfr_process_env_i env = { node_id, graph, *work, state, state->time, vm->custom_data};
 	lfr_result_e result = def->func(input, output, &env);
 
 	// Save work for later
@@ -1557,6 +1558,15 @@ lfr_variant_t lfr_get_output_value(lfr_node_id_t id, unsigned slot,
 
 	// Otherwise return default
 	return lfr_get_default_output_value(id, slot, vm, &graph->nodes);
+}
+
+
+/**
+Forward the current time of graph state by the diven amount.
+**/
+void lfr_forward_state_time(float dt, lfr_graph_state_t *state) {
+	assert(state);
+	state->time += dt;
 }
 
 

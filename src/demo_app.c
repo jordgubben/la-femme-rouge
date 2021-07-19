@@ -100,7 +100,9 @@ void run_gui(const lfr_vm_t *vm, lfr_graph_t* graph, lfr_graph_state_t *state) {
 		return;
 	}
 
-	double last_step_time = glfwGetTime();
+	// It's about time
+	double last_frame_time = glfwGetTime();
+	double time_since_last_step = 0;
 	const double time_between_steps = 1.f;
 
 	// Init Nuklear
@@ -118,10 +120,16 @@ void run_gui(const lfr_vm_t *vm, lfr_graph_t* graph, lfr_graph_state_t *state) {
 
 	// Keep the motor runnin
 	while(!glfwWindowShouldClose(window)) {
-		// Take a step through the graph now and then
+		// Get delta time
 		double now = glfwGetTime();
-		while (now  > last_step_time + time_between_steps) {
-			last_step_time += time_between_steps;
+		double dt = now - last_frame_time;
+		last_frame_time = now;
+		lfr_forward_state_time((float) dt, state);
+
+		// Take a step through the graph now and then
+		time_since_last_step += dt;
+		while (time_since_last_step > time_between_steps) {
+			time_since_last_step -= time_between_steps;
 			lfr_step(vm, graph, state);
 		}
 
