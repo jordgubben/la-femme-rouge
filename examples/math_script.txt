@@ -2,10 +2,14 @@ node	#1	mul
 node	#2	mul
 node	#3	sub
 node	#4	print_value
+node	#5	repeat
+node	#6	repeat
 place	#1	(19.000000, 20.000000)
 place	#2	(269.000000, 59.000000)
 place	#3	(521.000000, 93.000000)
 place	#4	(782.000000, 128.000000)
+place	#5	(19.000000, 399.000000)
+place	#6	(281.000000, 418.000000)
 data	#1:0 -> #2:0
 data	#2:0 -> #3:0
 data	#3:0 -> #4:0
@@ -14,6 +18,10 @@ value	#1:1 =	float 2.000000
 value	#2:1 =	float 10.000000
 value	#3:1 =	float 50.000000
 value	#4:1 =	float 10.000000
+value	#5:0 =	int 4
+value	#6:0 =	int 2
 link	#1 -> #2
 link	#2 -> #3
 link	#3 -> #4
+link	#5 -> #6
+link	#6 -> #1

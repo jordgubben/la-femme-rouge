@@ -32,6 +32,7 @@ lfr_variant_t lfr_vec2(lfr_vec2_t v) { return (lfr_variant_t) { lfr_vec2_type, .
 lfr_variant_t lfr_vec2_xy(float x, float y) { return lfr_vec2((lfr_vec2_t){x,y}); }
 
 float lfr_to_float(lfr_variant_t);
+int lfr_to_int(lfr_variant_t);
 
 //// LFR Instructions ////
 
@@ -59,6 +60,7 @@ typedef enum lfr_instruction_ {
 	lfr_distance,
 	lfr_print_value,
 	lfr_if_between,
+	lfr_repeat,
 	lfr_no_core_instructions // Not an instruction :P
 } lfr_instruction_e;
 
@@ -1292,6 +1294,27 @@ lfr_result_e lfr_if_between_proc( lfr_variant_t input[], lfr_variant_t output[],
 
 
 /**
+Instruction: `repeat`
+
+Instruction that schedules it's target node several times.
+**/
+lfr_result_e lfr_repeat_proc(lfr_variant_t input[], lfr_variant_t output[], lfr_process_env_i *env) {
+	int times = lfr_to_int(input[0]);
+
+	if (env->work < times) {
+		// Schedule targets
+		lfr_schedule_node_flow_targets(env->node_id, env->graph, env->graph_state);
+
+		// Continue later
+		env->work++;
+		return lfr_wait;
+	} else {
+		return lfr_halt;
+	}
+}
+
+
+/**
 Look up table of all core instructions.
 
 Note:
@@ -1334,6 +1357,10 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 			{"MIN", {lfr_float_type, .float_value = 0}},
 			{"MAX", {lfr_float_type, .float_value = 0}}
 		},
+		{}
+	},
+	{"repeat", lfr_repeat_proc,
+		{{"TIMES", {lfr_int_type, .int_value = 0}}},
 		{}
 	},
 };
@@ -1547,6 +1574,21 @@ float lfr_to_float(lfr_variant_t var) {
 	case lfr_no_core_types: assert(0); return 0;
 	}
 }
+
+
+/**
+Convert all variant types to an int.
+**/
+int lfr_to_int(lfr_variant_t var) {
+	switch(var.type) {
+	case lfr_nil_type: return 0;
+	case lfr_int_type: return var.int_value;
+	case lfr_float_type: return (int) var.float_value;
+	case lfr_vec2_type: return (int) var.vec2_value.x;
+	case lfr_no_core_types: assert(0); return 0;
+	}
+}
+
 
 #undef T_HAS_ID
 #undef T_INDEX
