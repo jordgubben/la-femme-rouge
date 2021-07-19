@@ -165,17 +165,25 @@ int lfr_save_flow_links_to_file(const lfr_graph_t *, FILE * restrict stream);
 
 
 //// LFR Instruction definitions ////
+struct lfr_graph_state_;
+typedef struct lfr_graph_state_ lfr_graph_state_t;
+
 typedef struct lfr_process_env_ {
 	// Graph meta
-	lfr_node_id_t node_id;
+	const lfr_node_id_t node_id;
 	const lfr_graph_t *graph;
 
-	// Customization
+	// Processing
+	unsigned work;
+	lfr_graph_state_t *graph_state;
+
+	// Surroundings
 	void *custom_data;
 } lfr_process_env_i;
 
 typedef enum lfr_result_ {
 	lfr_halt,
+	lfr_wait,
 	lfr_continue,
 	lfr_no_results // Not a result :P
 } lfr_result_e;
@@ -237,26 +245,42 @@ bool lfr_node_state_table_contains(lfr_node_id_t, const lfr_node_state_table_t*)
 
 enum { lfr_graph_state__max_queue = 8};
 typedef struct lfr_graph_state_ {
+	// Scheduled
 	lfr_node_id_t schedueled_nodes[lfr_graph_state__max_queue];
 	unsigned num_schedueled_nodes;
 
+	// Deferred
+	struct {
+		lfr_node_id_t node;
+		unsigned work;
+	} deferred_nodes[lfr_graph_state__max_queue];
+	unsigned num_deferred_nodes;
+
+	// Node data (processing results)
 	lfr_node_state_table_t nodes;
+
+	float time;
 } lfr_graph_state_t;
 
 
+// Data
 lfr_variant_t lfr_get_input_value(lfr_node_id_t, unsigned slot,
 	const lfr_vm_t *, const lfr_graph_t*, const lfr_graph_state_t*);
 lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned slot,
 	const lfr_vm_t *, const lfr_graph_t*, const lfr_graph_state_t*);
 
+// Time is (not always) the same for everyone
+void lfr_forward_state_time(float dt, lfr_graph_state_t *);
+
 
 //// LFR script execution ////
 
 void lfr_schedule_instruction(unsigned instruction, const lfr_graph_t *, lfr_graph_state_t *);
-void lfr_schedule(lfr_node_id_t, const lfr_graph_t *, lfr_graph_state_t *);
-int lfr_step(const lfr_vm_t *, const lfr_graph_t *, lfr_graph_state_t *);
+void lfr_schedule_node(lfr_node_id_t, const lfr_graph_t *, lfr_graph_state_t *);
+void lfr_defer_node(lfr_node_id_t, unsigned work, const lfr_graph_t *, lfr_graph_state_t *);
+void lfr_step(const lfr_vm_t *, const lfr_graph_t *, lfr_graph_state_t *);
 lfr_result_e lfr_process_node_instruction(unsigned inst, lfr_node_id_t,
-	const lfr_vm_t *, const lfr_graph_t *, lfr_graph_state_t *);
+	const lfr_vm_t *, const lfr_graph_t *, lfr_graph_state_t *, unsigned *work);
 
 #endif
 
@@ -312,61 +336,124 @@ void lfr_schedule_instruction(unsigned instruction, const lfr_graph_t *graph, lf
 	T_FOR_ROWS(node_index, graph->nodes) {
 		unsigned node_instruction = graph->nodes.node[node_index].instruction;
 		if (instruction != node_instruction) { continue; }
-		lfr_schedule(T_ID(graph->nodes, node_index), graph, state);
+		lfr_schedule_node(T_ID(graph->nodes, node_index), graph, state);
 	}
 }
 
+
 /**
 Enqueue a node to process to the script executions todo-list (as long as there is space left in the queue).
+
+Scheduled nodes are processed before deferred when steping throuh a graph.
 **/
-void lfr_schedule(lfr_node_id_t node_id, const lfr_graph_t *graph, lfr_graph_state_t *state) {
+void lfr_schedule_node(lfr_node_id_t node_id, const lfr_graph_t *graph, lfr_graph_state_t *state) {
+	assert(graph && state);
 	assert(T_HAS_ID(graph->nodes, node_id));
 	if (state->num_schedueled_nodes >= lfr_graph_state__max_queue) {
 		fprintf(stderr, "%s(): Node queue is full!\n", __func__);
 		return;
 	}
-	state->schedueled_nodes[state->num_schedueled_nodes++] = node_id;
+	state->schedueled_nodes[state->num_schedueled_nodes++]= node_id;
+}
+
+
+
+/**
+Schedule all nodes that follow the given node in the graph flow.
+
+Usefull for flow control. The `repeat` instruction is a good example.
+**/
+void lfr_schedule_node_flow_targets(lfr_node_id_t node_id,
+		const lfr_graph_t *graph, lfr_graph_state_t *state) {
+	assert(graph && state);
+
+	// Shedule all tartets of flow links where the given node is the source
+	for (int i =0; i < graph->num_flow_links; i++) {
+		const lfr_flow_link_t * link = &graph->flow_links[i];
+		if (!T_SAME_ID(link->source_node, node_id)) { continue; }
+		lfr_schedule_node(link->target_node, graph, state);
+	}
+}
+
+
+/**
+Continue processing given node a little later.
+
+Process tells LFR to process this node, with this work data,
+first after everything scheduled has been cleared from the queue.
+
+Design note:
+Mainly for internal usage when a node needs to be processed several times
+with information carried form one iteration to the next.
+Flow control instructions  (like `repeat`) can sometimes have surprising
+behaviour if processed again to soon.
+**/
+void lfr_defer_node(lfr_node_id_t node_id, unsigned work,
+		const lfr_graph_t *graph, lfr_graph_state_t *state) {
+	assert(graph && state);
+	assert(T_HAS_ID(graph->nodes, node_id));
+	if (state->num_deferred_nodes >= lfr_graph_state__max_queue) {
+		fprintf(stderr, "%s(): Node queue is full!\n", __func__);
+		return;
+	}
+	state->deferred_nodes[state->num_deferred_nodes].node = node_id;
+	state->deferred_nodes[state->num_deferred_nodes].work = work;
+	state->num_deferred_nodes++;
 }
 
 
 /**
 Execute topmost scheduled node (if any) from the script executions todo-list.
-
-Returns number of scheduled nodes, including the one executed.
 **/
-int lfr_step(const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *state) {
-	if (!state->num_schedueled_nodes) { return 0; };
+void lfr_step(const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *state) {
+	assert(vm && graph && state);
 
 	// Find the right node
-	const lfr_node_id_t node_id = state->schedueled_nodes[0];
-	const unsigned node_index = T_INDEX(graph->nodes, node_id);
-	const unsigned instruction = graph->nodes.node[node_index].instruction;
+	// (prioritize scheduled over deferred)
+	lfr_node_id_t node_id;
+	unsigned work = 0;
+	if (state->num_schedueled_nodes) {
+		node_id = state->schedueled_nodes[0];
+
+		// Shuffle queue (inefficient)
+		state->num_schedueled_nodes--;
+		for (int i = 0; i < state->num_schedueled_nodes; i++) {
+			state->schedueled_nodes[i] = state->schedueled_nodes[i + 1];
+		}
+	} else if (state->num_deferred_nodes) {
+		node_id = state->deferred_nodes[0].node;
+		work = state->deferred_nodes[0].work;
+
+		// Shuffle queue (inefficient)
+		state->num_deferred_nodes--;
+		for (int i = 0; i < state->num_deferred_nodes; i++) {
+			state->deferred_nodes[i] = state->deferred_nodes[i + 1];
+		}
+	} else {
+		// Nothing to do
+		return;
+	}
 
 	// Process instruction
-	lfr_result_e result = lfr_process_node_instruction(instruction, node_id, vm, graph, state);
+	const unsigned node_index = T_INDEX(graph->nodes, node_id);
+	const unsigned instruction = graph->nodes.node[node_index].instruction;
+	lfr_result_e result = lfr_process_node_instruction(instruction, node_id, vm, graph, state, &work);
 
 	// Enqueue different nodes depending on processing result
 	switch(result) {
 	case lfr_continue: {
 		// All clear - Continue flow throgh graph
-		for (int i =0; i < graph->num_flow_links; i++) {
-			const lfr_flow_link_t * link = &graph->flow_links[i];
-			if (T_SAME_ID(link->source_node, node_id)) {
-				lfr_schedule(link->target_node, graph, state);
-			}
-		}
+		lfr_schedule_node_flow_targets(node_id, graph, state);
 	}break;
+	case lfr_wait: {
+		// Continue processing at a later point
+		lfr_defer_node(node_id, work, graph, state);
+	}
 	case lfr_halt: {
 		//Stop flow here - Do nothing
 	} break;
 	case lfr_no_results: { assert(0); } break;
 	}
-
-	// Shuffle queue (inefficient)
-	for (int i = 1; i < state->num_schedueled_nodes; i++) {
-		state->schedueled_nodes[i-1] = state->schedueled_nodes[i];
-	}
-	return state->num_schedueled_nodes--;
 }
 
 
@@ -374,7 +461,7 @@ int lfr_step(const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *st
 Process a single node instruction.
 **/
 lfr_result_e lfr_process_node_instruction(unsigned instruction, lfr_node_id_t node_id,
-		const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *state) {
+		const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *state, unsigned *work) {
 	lfr_variant_t input[8] = {0}, output[8] = {0};
 
 	// Get Input
@@ -384,8 +471,13 @@ lfr_result_e lfr_process_node_instruction(unsigned instruction, lfr_node_id_t no
 
 	// Process instruction
 	const lfr_instruction_def_t *def = lfr_get_instruction(instruction, vm);
-	lfr_process_env_i env = { node_id, graph, vm->custom_data};
+	lfr_process_env_i env = { node_id, graph, *work, state, vm->custom_data};
 	lfr_result_e result = def->func(input, output, &env);
+
+	// Save work for later
+	if (result == lfr_wait) {
+		*work = env.work;
+	}
 
 	// Update node state with new result data
 	unsigned state_index = lfr_insert_node_state_at(node_id, &graph->nodes, &state->nodes);
@@ -1178,6 +1270,8 @@ lfr_result_e lfr_print_value_proc( lfr_variant_t input[], lfr_variant_t output[]
 
 
 /**
+Instruction: `if_between`
+
 Only continue if value is within permitted range
 **/
 lfr_result_e lfr_if_between_proc( lfr_variant_t input[], lfr_variant_t output[], lfr_process_env_i *env) {
@@ -1233,6 +1327,7 @@ static const lfr_instruction_def_t lfr_core_instructions_[lfr_no_core_instructio
 		{{"VAL", {lfr_float_type, .float_value = 0}}},
 		{}
 	},
+	// Flow control
 	{"if_between", lfr_if_between_proc,
 		{
 			{"VAL", {lfr_float_type, .float_value = 0}},

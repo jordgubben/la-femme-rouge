@@ -123,25 +123,33 @@ void show_individual_node_window(
 
 	unsigned index = lfr_get_node_index(node_id, &graph->nodes);
 
+	// Window name (internal identifier)
+	char name[128];
+	snprintf(name, 128, "[#%u|%u]" , node_id.id, index);
+
 	// Window title
 	char title[1024];
 	lfr_instruction_e inst = graph->nodes.node[index].instruction;
 	const char* inst_name = lfr_get_instruction_name(inst, vm);
-	snprintf(title, 1024, "[#%u|%u] %s", node_id.id, index, inst_name);
+	bool next_scheduled = (state->num_schedueled_nodes && node_id.id ==  state->schedueled_nodes[0].id);
+	bool next_deferred = (state->num_deferred_nodes && node_id.id ==  state->deferred_nodes[0].node.id);
+	snprintf(title, 1024, "[#%u|%u] %s%s%s"
+		, node_id.id, index, inst_name
+		, next_scheduled ? " (next scheduled)" : ""
+		, next_deferred ? " (next deferred)" : ""
+		);
 
 	// Initial window rect
 	lfr_vec2_t pos = lfr_get_node_position(node_id, &graph->nodes);
 	struct nk_rect rect =  nk_rect(pos.x, pos.y, node_window_w, node_window_h);
 
 	// Show the window
-	bool highlight = (state->num_schedueled_nodes && node_id.id ==  state->schedueled_nodes[0].id);
 	nk_flags flags = 0
 		| NK_WINDOW_MOVABLE
 		| NK_WINDOW_SCALABLE
 		| NK_WINDOW_TITLE
-		| (highlight ? NK_WINDOW_BORDER : 0);
 		;
-	if (nk_begin(ctx, title, rect, flags)) {
+	if (nk_begin_titled(ctx, name, title, rect, flags)) {
 		if (nk_tree_push_id(ctx, NK_TREE_NODE, "Main flow", NK_MINIMIZED, node_id.id)){
 			// Add new links
 			if (app->mode == em_normal) {
@@ -209,7 +217,7 @@ void show_individual_node_window(
 			app->removal_of_node_requested = node_id;
 		}
 		if (nk_button_label(ctx, "Schedule me")) {
-			lfr_schedule(node_id, graph, state);
+			lfr_schedule_node(node_id, graph, state);
 		}
 
 		// Update node position
@@ -641,7 +649,7 @@ void show_node_creation_contextual_menu(const lfr_vm_t *vm, struct nk_context* c
 
 
 /**
-Show queued nodes.
+Show various debugging information for the given graph and state.
 **/
 void lfr_show_debug(struct nk_context *ctx, lfr_graph_t *graph, lfr_graph_state_t *state) {
 	assert(ctx && graph && state);
@@ -653,12 +661,26 @@ void lfr_show_debug(struct nk_context *ctx, lfr_graph_t *graph, lfr_graph_state_
 		;
 	if (nk_begin(ctx, "Queued nodes", nk_rect(500,500, 300, 200), window_flags)) {
 		nk_layout_row_dynamic(ctx, 0, 1);
+
+		// Scheduled first
+		nk_label(ctx, "Scheduled", NK_TEXT_LEFT);
 		for (int i = 0 ; i < state->num_schedueled_nodes; i++) {
 			lfr_node_id_t node_id = state->schedueled_nodes[i];
 			unsigned index = graph->nodes.sparse_id[node_id.id];
 			char label[1024];
 			snprintf(label, 1024, "Node [#%u|%u]", node_id.id, index);
-			nk_label(ctx, label, NK_TEXT_LEFT);
+			nk_label(ctx, label, NK_TEXT_RIGHT);
+		}
+
+		// Then defered
+		nk_label(ctx, "Defered", NK_TEXT_LEFT);
+		for (int i = 0 ; i < state->num_deferred_nodes; i++) {
+			lfr_node_id_t node_id = state->deferred_nodes[i].node;
+			unsigned work = state->deferred_nodes[i].work;
+			unsigned index = graph->nodes.sparse_id[node_id.id];
+			char label[1024];
+			snprintf(label, 1024, "Node [#%u|%u] (%u)", node_id.id, index, work);
+			nk_label(ctx, label, NK_TEXT_RIGHT);
 		}
 	}
 	nk_end(ctx);
