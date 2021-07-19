@@ -143,12 +143,9 @@ typedef enum game_instructions_ {
 /**
 Script instruction: Set position of the given actor.
 **/
-lfr_result_e set_actor_position_proc(lfr_node_id_t node_id,
-		lfr_variant_t input[], lfr_variant_t output[],
-		void *custom_data,
-		const lfr_graph_t* graph) {
-	assert(custom_data);
-	population_t *pop = custom_data;
+lfr_result_e set_actor_position_proc( lfr_variant_t input[], lfr_variant_t output[], lfr_process_env_i *env) {
+	assert(env->custom_data);
+	population_t *pop = env->custom_data;
 
 	// Find actor
 	int actor_index = input[0].int_value;
@@ -166,12 +163,9 @@ lfr_result_e set_actor_position_proc(lfr_node_id_t node_id,
 /**
 Script instruction: Get position of the given actor.
 **/
-lfr_result_e get_actor_position_proc(lfr_node_id_t node_id,
-		lfr_variant_t input[], lfr_variant_t output[],
-		void *custom_data,
-		const lfr_graph_t* graph) {
-	assert(custom_data);
-	population_t *pop = custom_data;
+lfr_result_e get_actor_position_proc( lfr_variant_t input[], lfr_variant_t output[], lfr_process_env_i *env) {
+	assert(env->custom_data);
+	population_t *pop = env->custom_data;
 	
 	// Find actor position
 	int actor_index = input[0].int_value;
@@ -187,12 +181,9 @@ lfr_result_e get_actor_position_proc(lfr_node_id_t node_id,
 /**
 Script instruction: Get the current cursor position in world space.
 **/
-lfr_result_e get_cursor_position_proc(lfr_node_id_t node_id,
-		lfr_variant_t input[], lfr_variant_t output[],
-		void *custom_data,
-		const lfr_graph_t* graph) {
-	assert(custom_data);
-	population_t *pop = custom_data;
+lfr_result_e get_cursor_position_proc( lfr_variant_t input[], lfr_variant_t output[], lfr_process_env_i *env) {
+	assert(env->custom_data);
+	population_t *pop = env->custom_data;
 
 	// Output cursor position
 	vec2_t pos = pop->cursor_world_pos;
@@ -204,12 +195,8 @@ lfr_result_e get_cursor_position_proc(lfr_node_id_t node_id,
 /**
 Script instruction: Set scale of a given actor.
 **/
-lfr_result_e set_actor_scale_proc(lfr_node_id_t node_id,
-		lfr_variant_t input[], lfr_variant_t output[],
-		void *custom_data,
-		const lfr_graph_t* graph) {
-	assert(custom_data);
-	population_t *pop = custom_data;
+lfr_result_e set_actor_scale_proc( lfr_variant_t input[], lfr_variant_t output[], lfr_process_env_i *env) {
+	population_t *pop = env->custom_data;
 
 	// Find actor
 	int actor_index = input[0].int_value;
