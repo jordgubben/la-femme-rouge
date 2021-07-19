@@ -44,6 +44,7 @@ void lfr_show_debug(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
 #endif // LFR_EDITOR_H
 
 #ifdef LFR_EDITOR_IMPLEMENTATION
+#define SHOW_WINDOW_INTERNALS_SECTION 1
 
 // Individual node windows
 void show_individual_node_window(lfr_node_id_t, const lfr_vm_t*, lfr_graph_t*, lfr_graph_state_t*, lfr_editor_t*);
@@ -60,6 +61,8 @@ void draw_data_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_c
 void draw_link_selection_curve(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
 void show_node_creation_contextual_menu(const lfr_vm_t *, struct nk_context *, lfr_graph_t *);
 
+// Understand Nuklear better
+void show_window_internals_section(struct nk_context *);
 
 static const char *bg_window_title = "Graph editor BG";
 static const unsigned node_window_w = 210, node_window_h = 330;
@@ -90,6 +93,10 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 			show_node_creation_contextual_menu(vm, ctx, graph);
 		}
 
+#ifdef SHOW_WINDOW_INTERNALS_SECTION
+		show_window_internals_section(ctx);
+#endif // SHOW_WINDOW_INTERNALS_SECTION
+
 		// Show nodes as space layout groups
 		int num_nodes = graph->nodes.num_rows;
 		nk_layout_space_begin(ctx, NK_STATIC, app->outer_bounds.h, num_nodes);
@@ -108,6 +115,9 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 
 		nk_layout_space_end(ctx);
 
+#ifdef SHOW_WINDOW_INTERNALS_SECTION
+		show_window_internals_section(ctx);
+#endif // SHOW_WINDOW_INTERNALS_SECTION
 	}
 	nk_end(ctx);
 
@@ -123,6 +133,45 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 		app->mode = em_normal;
 	}
 }
+
+
+/*
+Helper function tomunderstand Nuklear and it's layouting system better
+*/
+void show_window_internals_section(struct nk_context *ctx) {
+	// Window bounds
+	{
+		struct nk_rect window_bounds = nk_window_get_bounds(ctx);
+		nk_layout_row_dynamic(ctx, 0, 5);
+		nk_label(ctx, "Window bounds", NK_TEXT_LEFT);
+		nk_property_float(ctx, "#x", 0, &window_bounds.x, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#y", 0, &window_bounds.y, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#w", 0, &window_bounds.w, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#h", 0, &window_bounds.h, FLT_MAX, 1,1);
+	}
+
+	// Window content region
+	{
+		struct nk_rect window_region = nk_window_get_content_region(ctx);
+		nk_layout_row_dynamic(ctx, 0, 5);
+		nk_label(ctx, "Window content region", NK_TEXT_LEFT);
+		nk_property_float(ctx, "#x", 0, &window_region.x, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#y", 0, &window_region.y, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#w", 0, &window_region.w, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#h", 0, &window_region.h, FLT_MAX, 1,1);
+	}
+
+	// Window scroll
+	{
+		unsigned scroll_x, scroll_y;
+		nk_window_get_scroll(ctx, &scroll_x, &scroll_y);
+		nk_layout_row_dynamic(ctx, 0, 3);
+		nk_label(ctx, "Window scroll", NK_TEXT_LEFT);
+		nk_propertyi(ctx, "#x", 0, scroll_x, INT_MAX, 1,1);
+		nk_propertyi(ctx, "#y", 0, scroll_y, INT_MAX, 1,1);
+	}
+}
+
 
 // Tmp. Layout constants (undefined when no longer needed)
 #define LFR_SLOT_NAME_ROW_H 18
