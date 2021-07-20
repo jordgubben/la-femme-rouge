@@ -275,7 +275,7 @@ typedef struct lfr_graph_state_ {
 } lfr_graph_state_t;
 
 
-// Data
+// Data slots
 lfr_variant_t lfr_get_input_value(lfr_node_id_t, unsigned slot,
 	const lfr_vm_t *, const lfr_graph_t*, const lfr_graph_state_t*);
 lfr_variant_t lfr_get_output_value(lfr_node_id_t, unsigned slot,
