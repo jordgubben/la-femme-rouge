@@ -467,6 +467,13 @@ void lfr_step(const lfr_vm_t *vm, const lfr_graph_t *graph, lfr_graph_state_t *s
 		return;
 	}
 
+	// Skip node no longer in graph
+	if (!T_HAS_ID(graph->nodes, node_id)) {
+		fprintf(stderr, "%s():\t Skipping node [#%u] as it is no longer in this graph.\n"
+			, __func__, node_id.id);
+		return;
+	}
+
 	// Process instruction
 	const unsigned node_index = T_INDEX(graph->nodes, node_id);
 	const unsigned instruction = graph->nodes.node[node_index].instruction;
