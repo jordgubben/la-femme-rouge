@@ -245,6 +245,10 @@ void show_individual_node_window(
 
 			nk_tree_pop(ctx);
 		} else {
+			// Need this to compensate to for groups scroll bar
+			unsigned scroll_y;
+			nk_group_get_scroll(ctx, name, NULL, &scroll_y);
+
 			// Get attachement point for each link targeting this node
 			// even if the buttons ate hidden
 			for (int i = 0; i < graph->num_flow_links; i++) {
@@ -254,16 +258,20 @@ void show_individual_node_window(
 				if (link->source_node.id == node_id.id) {
 					// Get attachment point for flow lines
 					struct nk_panel* panel = nk_window_get_panel(ctx);
-					app->flow_link_points[i].source =
-						(lfr_vec2_t) {panel->at_x + panel->bounds.w, panel->at_y + 20/2};
+					app->flow_link_points[i].source = (lfr_vec2_t) {
+						panel->at_x + panel->bounds.w,
+						panel->at_y + 20/2 - scroll_y
+						};
 				}
 
 				// Target end
 				if (link->target_node.id == node_id.id) {
 					// Get attachment point for flow lines
 					struct nk_panel* panel = nk_window_get_panel(ctx);
-					app->flow_link_points[i].target =
-						(lfr_vec2_t) {panel->at_x , panel->at_y + 20/2};
+					app->flow_link_points[i].target = (lfr_vec2_t) {
+						panel->at_x,
+						panel->at_y + 20/2 - scroll_y
+						};
 				}
 			}
 		}
