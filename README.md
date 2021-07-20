@@ -36,7 +36,7 @@ This project is still in it's infancy. Here are a few of the most obvious things
  - Mathematical nodes can use all numeric types (`int`, `float`, `vec2`)
  - Node instruction for division `/` (supporting all relevant types)
  - A `vec3` type (with appropriate support from existing math instructions)
- - A `bool` type with it's own set of instructions (`and`, `or`, `not`)
+ - Instructions for `bool` type (`and`, `or`, `not`)
  - Numerical (`int`, `float`, `vec2`) and logical (`bool`) expression instructions allowing for more sophisticated calculations in a single node
  - Async instructions that can take more than one evaluation step to complete
  - Join-instruction that forwards first once all nodes before it in the flow are done
