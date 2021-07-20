@@ -31,6 +31,9 @@ typedef struct lfr_editor_ {
 
 	// Layout
 	struct nk_rect outer_bounds;
+	struct {
+		lfr_vec2_t source, target;
+	} flow_link_points[lfr_graph_max_flow_links];
 	float input_ys[lfr_node_table_max_rows][lfr_signature_size];
 	lfr_vec2_t output_positions[lfr_node_table_max_rows][lfr_signature_size];
 } lfr_editor_t;
@@ -48,7 +51,7 @@ void lfr_show_debug(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
 
 // Individual node windows
 void show_individual_node_window(lfr_node_id_t, const lfr_vm_t*, lfr_graph_t*, lfr_graph_state_t*, lfr_editor_t*);
-void show_node_main_flow_section(lfr_node_id_t, lfr_graph_t *, struct nk_context *);
+void show_node_main_flow_section(lfr_node_id_t, lfr_graph_t *, lfr_editor_t *);
 void show_node_input_slots_group(lfr_node_id_t,
 	const lfr_vm_t*, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
 void show_node_output_slots_group(lfr_node_id_t,
@@ -238,9 +241,21 @@ void show_individual_node_window(
 				}
 			}
 
-			show_node_main_flow_section(node_id, graph, ctx);
+			show_node_main_flow_section(node_id, graph, app);
 
 			nk_tree_pop(ctx);
+		} else {
+			// Get attachement point for each link targeting this node
+			// even if the buttons ate hidden
+			for (int i = 0; i < graph->num_flow_links; i++) {
+				lfr_flow_link_t *link = &graph->flow_links[i];
+				if (link->target_node.id == node_id.id) {
+					// Get attachment point for flow lines
+					struct nk_panel* panel = nk_window_get_panel(ctx);
+					app->flow_link_points[i].target =
+						(lfr_vec2_t) {panel->at_x , panel->at_y + 20/2};
+				}
+			}
 		}
 
 		// Show "Link with this" button?
@@ -305,7 +320,10 @@ void show_individual_node_window(
 /*
 Show all links involved in the given nodes main flow.
 */
-void show_node_main_flow_section(lfr_node_id_t node_id, lfr_graph_t *graph, struct nk_context *ctx) {
+void show_node_main_flow_section(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_editor_t *app) {
+	assert(graph && app);
+	struct nk_context *ctx = app->ctx;
+
 	unsigned sl_count = lfr_count_node_source_links(node_id, graph);
 	unsigned tl_count = lfr_count_node_target_links(node_id, graph);
 	unsigned max_links = (sl_count > tl_count ? sl_count : tl_count);
@@ -329,6 +347,10 @@ void show_node_main_flow_section(lfr_node_id_t node_id, lfr_graph_t *graph, stru
 			if (nk_button_label(ctx, label)) {
 				lfr_unlink_nodes(link->source_node, link->target_node, graph);
 			}
+
+			// Get attachment point for flow lines
+			struct nk_panel* panel = nk_window_get_panel(ctx);
+			app->flow_link_points[i].target = (lfr_vec2_t) {panel->at_x , panel->at_y + 15/2};
 		}
 
 		nk_group_end(ctx);
@@ -529,7 +551,7 @@ void show_node_output_slots_group(
 			}
 		}
 
-		// Get current y
+		// Get current output point
 		// (Use when rendering slot connections)
 		struct nk_panel* panel = nk_window_get_panel(ctx);
 		app->output_positions[node_index][slot] =
@@ -601,8 +623,8 @@ void draw_flow_link_lines(const lfr_editor_t *app, const lfr_graph_t *graph, str
 		p1.y += 20;
 
 		// Target end
-		lfr_vec2_t p2 = lfr_get_node_position(link->target_node, &graph->nodes);
-		p2.y += 20;
+		unsigned target_index = lfr_get_node_index(link->target_node, &graph->nodes);
+		lfr_vec2_t p2 = app->flow_link_points[i].target;
 
 		// Draw curve
 		const float ex = 75;
