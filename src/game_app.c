@@ -45,11 +45,12 @@ const char* vertex_shader_src =
 	"layout (location = 0) in vec3 attr_pos;\n"
 	"layout (location = 1) in vec3 attr_color;\n"
 	"out vec3 var_color;\n"
-	"uniform mat4 transform;"
+	"uniform mat4 u_transform;"
+	"uniform vec3 u_color;"
 	"void main()\n"
 	"{\n"
-	"   var_color = attr_color;\n"
-	"   gl_Position = transform * vec4(attr_pos, 1.0);\n"
+	"   var_color = attr_color * u_color;\n"
+	"   gl_Position = u_transform * vec4(attr_pos, 1.0);\n"
 	"}\0";
 
 
@@ -73,13 +74,14 @@ typedef struct gl_mesh_ {
 
 typedef struct vec2_ { float x,y; } vec2_t;
 typedef struct vec3_ { float x,y,z; } vec3_t;
+typedef struct rgb_color_ { float r,g,b; } rgb_color_t;
 typedef struct mat4_ {float m[16]; } mat4_t;
 
 bool create_mesh(
 	const vec3_t [], const vec3_t [], unsigned num_verticies,
 	const unsigned [], unsigned num_indecies,
 	gl_mesh_t *);
-void render_mesh(const gl_program_t *, const gl_mesh_t *, const mat4_t *);
+void render_mesh(const gl_program_t *, const gl_mesh_t *, const mat4_t *i, rgb_color_t);
 void delete_mesh(gl_mesh_t *);
 
 const vec3_t triangle_positions[3] = {
@@ -120,6 +122,7 @@ const unsigned unit_quad_indices[3*2] = {
 
 //// Game world ////
 
+const float actor_side = 0.3f;
 enum {
 	num_actors_in_world = 4,
 };
@@ -127,6 +130,7 @@ enum {
 typedef struct population_ {
 	vec2_t actor_positions[num_actors_in_world];
 	float actor_scales[num_actors_in_world];
+	float actor_hovers[num_actors_in_world];
 	vec2_t cursor_world_pos;
 } population_t;
 
@@ -241,18 +245,16 @@ lfr_instruction_def_t game_instructions[gi_no_instructions] = {
 Application starting point.
 **/
 int main( int argc, char** argv) {
-	printf("gi_set_actor_position = %u\n" , gi_set_actor_position);
-	printf("gi_get_actor_position = %u\n" , gi_get_actor_position);
-
 	// Init world population
 	population_t pop = {0};
 	for (int i = 0; i < num_actors_in_world; i++) {
 		pop.actor_positions[i] = (vec2_t) {-0.75 + 0.5 * i, 0.0};
 		pop.actor_scales[i] = 1.0;
+		pop.actor_hovers[i] = false;
 	}
 
 	// Initialize window (Full HD)
-	GLFWwindow *win;
+	GLFWwindow *win = NULL;
 	if(!init_gl_app("Full HD game", 1920, 1080, &win)) {
 		term_gl_app(win);
 		return -1;
@@ -340,6 +342,16 @@ int main( int argc, char** argv) {
 			pop.cursor_world_pos = cursor_pos;
 		}
 
+		// Update hover status for actors
+		for (int i = 0; i < num_actors_in_world; i++) {
+			float dx = pop.cursor_world_pos.x - pop.actor_positions[i].x;
+			float dy = pop.cursor_world_pos.y - pop.actor_positions[i].y;
+
+			const float half_side = actor_side/2.f;
+			bool new_status = fabs(dx) < half_side && fabs(dy) < half_side;
+			pop.actor_hovers[i] = new_status;
+		}
+
 		// Curent time
 		double now = glfwGetTime();
 
@@ -411,10 +423,11 @@ int main( int argc, char** argv) {
 		// Render some actors
 		// (So that the custom controls have something to manipulate)
 		for (int i = 0; i < num_actors_in_world; i++) {
+			// Prepare actor transform
 			vec2_t pos = pop.actor_positions[i];
 			float scale = pop.actor_scales[i];
 			const float r = ((float) width)/((float) height *0.5);
-			const float s = 0.2f * scale;
+			const float s = actor_side * scale;
 			const mat4_t transform = {
 				s/r, 0, 0, pos.x/r,
 				0, s, 0, pos.y,
@@ -422,8 +435,16 @@ int main( int argc, char** argv) {
 				0, 0, 0, 1
 			};
 
+			// Set actor color
+			rgb_color_t color = {1,1,1};
+			if (pop.actor_hovers[i]) {
+				color.r *=2;
+				color.g *=2;
+				color.b *=2;
+			}
+
 			// Render world
-			render_mesh(&program, &unit_quad, &transform);
+			render_mesh(&program, &unit_quad, &transform, color);
 		}
 
 		// Render UI
@@ -505,13 +526,17 @@ bool create_mesh(
 /**
 Render the given mesh with OpenGL.
 **/
-void render_mesh(const gl_program_t *program, const gl_mesh_t *mesh, const mat4_t *transform) {
+void render_mesh(const gl_program_t *program, const gl_mesh_t *mesh, const mat4_t *transform, rgb_color_t c) {
 	assert(program && mesh && transform);
 
-	// Render mesh with the given program and the provided transform
+	// Render mesh with the given program and uniforms
 	glUseProgram(program->shader_program);
-	GLuint transform_loc = glGetUniformLocation(program->shader_program, "transform");
+	GLuint transform_loc = glGetUniformLocation(program->shader_program, "u_transform");
 	glUniformMatrix4fv(transform_loc, 1, GL_TRUE, &transform->m[0]);
+	GLuint color_loc = glGetUniformLocation(program->shader_program, "u_color");
+	glUniform3f(color_loc, c.r, c.g, c.b);
+
+	// Render mesh
 	glBindVertexArray(mesh->vao);
 	glDrawElements(GL_TRIANGLES, mesh->num_indecies, GL_UNSIGNED_INT, 0);
 	CHECK_GL("Render mesh");
