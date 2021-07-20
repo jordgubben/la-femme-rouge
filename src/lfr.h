@@ -31,7 +31,7 @@ lfr_variant_t lfr_float(float v) { return (lfr_variant_t) {lfr_float_type, .floa
 lfr_variant_t lfr_vec2(lfr_vec2_t v) { return (lfr_variant_t) { lfr_vec2_type, .vec2_value = v}; }
 lfr_variant_t lfr_vec2_xy(float x, float y) { return lfr_vec2((lfr_vec2_t){x,y}); }
 
-#define LFR_FLOAT(v) {lfr_float_type, .float_value = 0 }
+#define LFR_FLOAT(v) (lfr_variant_t){lfr_float_type, .float_value = v }
 
 float lfr_to_float(lfr_variant_t);
 int lfr_to_int(lfr_variant_t);
