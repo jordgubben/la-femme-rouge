@@ -38,7 +38,6 @@ This project is still in it's infancy. Here are a few of the most obvious things
  - A `vec3` type (with appropriate support from existing math instructions)
  - Instructions for `bool` type (`and`, `or`, `not`)
  - Numerical (`int`, `float`, `vec2`) and logical (`bool`) expression instructions allowing for more sophisticated calculations in a single node
- - Async instructions that can take more than one evaluation step to complete
  - Join-instruction that forwards first once all nodes before it in the flow are done
  - Example using C++ (get the ` #ifdef __cplusplus__` exporting/linking thing right)
  - Editor safety checks that prevent users from connecting data slots of the wrong types
