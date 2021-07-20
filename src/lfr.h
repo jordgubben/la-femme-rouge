@@ -11,6 +11,7 @@ typedef struct lfr_vec2_ { float x,y; } lfr_vec2_t;
 
 typedef enum lfr_variant_type_ {
 	lfr_nil_type,
+	lfr_bool_type,
 	lfr_int_type,
 	lfr_float_type,
 	lfr_vec2_type,
@@ -20,22 +21,26 @@ typedef enum lfr_variant_type_ {
 typedef struct lfr_variant_ {
 	lfr_variant_type_e type;
 	union {
+		bool bool_value;
 		int int_value;
 		float float_value;
 		lfr_vec2_t vec2_value;
 	};
 } lfr_variant_t;
 
+lfr_variant_t lfr_bool(bool v) { return (lfr_variant_t) {lfr_bool_type, .bool_value = v}; }
 lfr_variant_t lfr_int(int v) { return (lfr_variant_t) {lfr_int_type, .int_value = v}; }
 lfr_variant_t lfr_float(float v) { return (lfr_variant_t) {lfr_float_type, .float_value = v}; }
 lfr_variant_t lfr_vec2(lfr_vec2_t v) { return (lfr_variant_t) { lfr_vec2_type, .vec2_value = v}; }
 lfr_variant_t lfr_vec2_xy(float x, float y) { return lfr_vec2((lfr_vec2_t){x,y}); }
 
+#define LFR_BOOL(v) (lfr_variant_t){lfr_bool_type, .bool_value = v }
 #define LFR_INT(v) (lfr_variant_t){lfr_int_type, .int_value = v }
 #define LFR_FLOAT(v) (lfr_variant_t){lfr_float_type, .float_value = v }
 
 float lfr_to_float(lfr_variant_t);
 int lfr_to_int(lfr_variant_t);
+bool lfr_to_bool(lfr_variant_t);
 
 //// LFR Instructions ////
 
@@ -821,6 +826,11 @@ void lfr_load_graph_from_file(FILE * restrict stream, const lfr_vm_t *vm, lfr_gr
 				lfr_variant_t var = {lfr_float_type};
 				sscanf(&line_buf[n], "%f", &var.float_value);
 				lfr_set_fixed_input_value(input_node, input_slot, var, &graph->nodes);
+			} else if (strcmp(type_buf, "bool") == 0) {
+				char c;
+				sscanf(&line_buf[n], "%c", &c);
+				lfr_variant_t var = lfr_bool(c == 't');
+				lfr_set_fixed_input_value(input_node, input_slot, var, &graph->nodes);
 			} else if (strcmp(type_buf, "int") == 0) {
 				lfr_variant_t var = {lfr_int_type};
 				sscanf(&line_buf[n], "%d", &var.int_value);
@@ -1148,6 +1158,8 @@ int lfr_save_fixed_values_in_table_to_file(const lfr_node_table_t* table, FILE *
 			lfr_variant_t var = node->input_data[slot].fixed_value;
 			if (var.type == lfr_float_type) {
 				char_count += fprintf(stream, "float %f", var.float_value);
+			} else if (var.type == lfr_bool_type) {
+				char_count += fprintf(stream, "bool %c", var.bool_value ? 't' : 'f');
 			} else if (var.type == lfr_int_type) {
 				char_count += fprintf(stream, "int %d", var.int_value);
 			} else if (var.type == lfr_vec2_type) {
@@ -1288,6 +1300,7 @@ Print value to stdout.
 lfr_result_e lfr_print_value_proc( lfr_variant_t input[], lfr_variant_t output[], lfr_process_env_i *env) {
 	switch(input[0].type) {
 	case lfr_nil_type: { printf("nil\n");} break;
+	case lfr_bool_type: { printf("%s", input[0].bool_value ? "true" : "false");} break;
 	case lfr_int_type: { printf("%d", input[0].int_value); } break;
 	case lfr_float_type: { printf("%f\n", input[0].float_value); } break;
 	case lfr_vec2_type: { printf("(%f,%f)\n", input[0].vec2_value.x, input[0].vec2_value.y); } break;
@@ -1633,6 +1646,7 @@ Convert all variant types to a float.
 float lfr_to_float(lfr_variant_t var) {
 	switch(var.type) {
 	case lfr_nil_type: return 0;
+	case lfr_bool_type: return (var.bool_value ? 1.f : 0.f);
 	case lfr_int_type: return (float) var.int_value;
 	case lfr_float_type: return var.float_value;
 	case lfr_vec2_type: return var.vec2_value.x;
@@ -1647,11 +1661,20 @@ Convert all variant types to an int.
 int lfr_to_int(lfr_variant_t var) {
 	switch(var.type) {
 	case lfr_nil_type: return 0;
+	case lfr_bool_type: return (var.bool_value ? 1 : 0);
 	case lfr_int_type: return var.int_value;
 	case lfr_float_type: return (int) var.float_value;
 	case lfr_vec2_type: return (int) var.vec2_value.x;
 	case lfr_no_core_types: assert(0); return 0;
 	}
+}
+
+
+/**
+Convert all variant types to a bool.
+**/
+bool lfr_to_bool(lfr_variant_t var) {
+	return lfr_to_int(var) != 0;
 }
 
 

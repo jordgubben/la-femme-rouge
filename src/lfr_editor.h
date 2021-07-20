@@ -350,10 +350,18 @@ void show_node_input_slots_group(
 		// Current input value (linked or fixed)
 		// (Set a new value if it's changed by the UI, and breaks any link))
 		const lfr_variant_t data = lfr_get_input_value(node_id, slot, vm, graph, state);
-		nk_layout_row_dynamic(ctx, LFR_SLOT_VALUE_ROW_H, data.type == lfr_vec2_type ? 2 : 1);
+		int num_cols = (data.type == lfr_vec2_type ? 2 : 1);
+		nk_layout_row_dynamic(ctx, LFR_SLOT_VALUE_ROW_H, num_cols);
 		switch(data.type) {
 		case lfr_nil_type: {
 			nk_label(ctx, "---", NK_TEXT_RIGHT);
+		} break;
+		case lfr_bool_type: {
+			nk_bool ui_value = data.bool_value;
+			nk_bool changed = nk_checkbox_label(ctx, ui_value ? "true" : "false", &ui_value);
+			if (changed) {
+				lfr_set_fixed_input_value(node_id, slot, lfr_bool(ui_value), &graph->nodes);
+			}
 		} break;
 		case lfr_int_type: {
 			int new_value = nk_propertyi(ctx, "#=", INT_MIN, data.int_value, INT_MAX, 1, 1);
@@ -460,6 +468,9 @@ void show_node_output_slots_group(
 		switch (data.type) {
 		case lfr_nil_type: {
 			snprintf(label_buf, 32, "---");
+		} break;
+		case lfr_bool_type: {
+			snprintf(label_buf, 32, "%s", data.bool_value ? "true" : "false");
 		} break;
 		case lfr_int_type: {
 			snprintf(label_buf, 32, "%d", data.int_value);
