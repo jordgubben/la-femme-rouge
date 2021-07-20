@@ -4,19 +4,23 @@ node	#3	on_enter
 node	#5	on_exit
 node	#6	get_actor_position
 node	#7	print_value
-place	#1	(678.000000, 64.000000)
-place	#2	(389.000000, 64.000000)
-place	#3	(69.000000, 63.000000)
-place	#5	(1027.000000, 68.000000)
+node	#8	delay
+place	#1	(785.000000, 64.000000)
+place	#2	(297.000000, 62.000000)
+place	#3	(27.000000, 62.000000)
+place	#5	(1043.000000, 68.000000)
 place	#6	(1322.000000, 68.000000)
 place	#7	(1619.000000, 68.000000)
+place	#8	(542.000000, 116.000000)
 data	#2:0 -> #1:0
 data	#3:0 -> #2:0
 data	#5:0 -> #6:0
 data	#6:0 -> #7:0
 value	#3:0 =	bool f
 value	#3:1 =	int -1
-link	#2 -> #1
+value	#8:0 =	float 1.500000
+link	#6 -> #7
 link	#3 -> #2
 link	#5 -> #6
-link	#6 -> #7
+link	#2 -> #8
+link	#8 -> #1
