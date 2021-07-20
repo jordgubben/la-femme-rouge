@@ -224,6 +224,12 @@ lfr_result_e on_enter_event_proc( lfr_variant_t input[], lfr_variant_t output[],
 	unsigned actor_index = env->work;
 	assert(actor_index < num_actors_in_world);
 
+	// Optinally filter event per actor
+	int actor_filter = lfr_to_int(input[0]);
+	if (actor_filter > -1 && actor_filter != actor_index) {
+		return lfr_halt;
+	}
+
 	// Notify
 	output[0] = lfr_int(actor_index);
 	return lfr_continue;
@@ -254,7 +260,7 @@ lfr_instruction_def_t game_instructions[gi_no_instructions] = {
 		{},
 	},
 	{"on_enter", on_enter_event_proc,
-		{},
+		{{"FILTER", LFR_INT(-1)}},
 		{{"ACTOR", LFR_INT(0)}},
 	},
 };
