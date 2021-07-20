@@ -282,9 +282,15 @@ void lfr_forward_state_time(float dt, lfr_graph_state_t *);
 
 //// LFR script execution ////
 
+// Scheduling (do this as soon as possible)
 void lfr_schedule_instruction(unsigned instruction, const lfr_graph_t *, lfr_graph_state_t *);
 void lfr_schedule_node(lfr_node_id_t, const lfr_graph_t *, lfr_graph_state_t *);
+
+// Defering (do this after everything scheduled)
+void lfr_defer_instruction(unsigned instruction, unsigned work, const lfr_graph_t *, lfr_graph_state_t *);
 void lfr_defer_node(lfr_node_id_t, unsigned work, const lfr_graph_t *, lfr_graph_state_t *);
+
+// Actually do tings
 void lfr_step(const lfr_vm_t *, const lfr_graph_t *, lfr_graph_state_t *);
 lfr_result_e lfr_process_node_instruction(unsigned inst, lfr_node_id_t,
 	const lfr_vm_t *, const lfr_graph_t *, lfr_graph_state_t *, unsigned *work);
@@ -343,7 +349,8 @@ void lfr_schedule_instruction(unsigned instruction, const lfr_graph_t *graph, lf
 	T_FOR_ROWS(node_index, graph->nodes) {
 		unsigned node_instruction = graph->nodes.node[node_index].instruction;
 		if (instruction != node_instruction) { continue; }
-		lfr_schedule_node(T_ID(graph->nodes, node_index), graph, state);
+		lfr_node_id_t id = T_ID(graph->nodes, node_index);
+		lfr_schedule_node(id, graph, state);
 	}
 }
 
@@ -383,6 +390,20 @@ void lfr_schedule_node_flow_targets(lfr_node_id_t node_id,
 }
 
 
+/**
+Defer processing all nodes with the given instruction with the given work data.
+
+This is most usefull for triggerin events, i.e. things that happen in the game world that
+som script may (or may not) want to react to.
+**/
+void lfr_defer_instruction(unsigned inst, unsigned work, const lfr_graph_t *graph, lfr_graph_state_t *state) {
+	T_FOR_ROWS(node_index, graph->nodes) {
+		unsigned node_instruction = graph->nodes.node[node_index].instruction;
+		if (inst != node_instruction) { continue; }
+		lfr_node_id_t id = T_ID(graph->nodes, node_index);
+		lfr_defer_node(id, work, graph, state);
+	}
+}
 /**
 Continue processing given node a little later.
 

@@ -142,6 +142,7 @@ typedef enum game_instructions_ {
 	gi_get_actor_position,
 	gi_get_cursor_position,
 	gi_set_actor_scale,
+	gi_on_enter_event,
 	gi_no_instructions // Not an instruction
 } game_instructions_e;
 
@@ -216,6 +217,19 @@ lfr_result_e set_actor_scale_proc( lfr_variant_t input[], lfr_variant_t output[]
 }
 
 
+/**
+Script event: Triggered when the cursor enter an actor
+**/
+lfr_result_e on_enter_event_proc( lfr_variant_t input[], lfr_variant_t output[], lfr_process_env_i *env) {
+	unsigned actor_index = env->work;
+	assert(actor_index < num_actors_in_world);
+
+	// Notify
+	output[0] = lfr_int(actor_index);
+	return lfr_continue;
+}
+
+
 lfr_instruction_def_t game_instructions[gi_no_instructions] = {
 	{"set_actor_position", set_actor_position_proc,
 		{
@@ -238,6 +252,10 @@ lfr_instruction_def_t game_instructions[gi_no_instructions] = {
 			{"SCALE", (lfr_variant_t) { lfr_float_type, .float_value = 0}},
 		},
 		{},
+	},
+	{"on_enter", on_enter_event_proc,
+		{},
+		{{"ACTOR", LFR_INT(0)}},
 	},
 };
 
@@ -350,6 +368,10 @@ int main( int argc, char** argv) {
 
 			const float half_side = actor_side/2.f;
 			bool new_status = fabs(dx) < half_side && fabs(dy) < half_side;
+			bool old_status = pop.actor_hovers[i];
+			if (new_status && new_status != old_status) {
+				lfr_defer_instruction(gi_on_enter_event + (1 << 8), i, &graph, &graph_state);
+			}
 			pop.actor_hovers[i] = new_status;
 		}
 

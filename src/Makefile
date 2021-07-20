@@ -12,7 +12,7 @@ BIN_DIR=../bin/
 main: $(BIN_DIR)demo $(BIN_DIR)game tags
 
 run: $(BIN_DIR)game
-	cd $(BIN_DIR) && ./game
+	cd $(BIN_DIR) && ./game ../examples/trigger_script.txt
 
 # Build demo application
 $(BIN_DIR)demo: demo_app.c *.h $(BIN_DIR) _nk.o
