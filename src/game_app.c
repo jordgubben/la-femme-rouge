@@ -143,6 +143,7 @@ typedef enum game_instructions_ {
 	gi_get_cursor_position,
 	gi_set_actor_scale,
 	gi_on_enter_event,
+	gi_on_exit_event,
 	gi_no_instructions // Not an instruction
 } game_instructions_e;
 
@@ -220,7 +221,7 @@ lfr_result_e set_actor_scale_proc( lfr_variant_t input[], lfr_variant_t output[]
 /**
 Script event: Triggered when the cursor enter an actor
 **/
-lfr_result_e on_enter_event_proc( lfr_variant_t input[], lfr_variant_t output[], lfr_process_env_i *env) {
+lfr_result_e on_actor_event_proc( lfr_variant_t input[], lfr_variant_t output[], lfr_process_env_i *env) {
 	unsigned actor_index = env->work;
 	assert(actor_index < num_actors_in_world);
 
@@ -265,7 +266,11 @@ lfr_instruction_def_t game_instructions[gi_no_instructions] = {
 		},
 		{},
 	},
-	{"on_enter", on_enter_event_proc,
+	{"on_enter", on_actor_event_proc,
+		{{"ONCE", LFR_BOOL(false)}, {"FILTER", LFR_INT(-1)}},
+		{{"ACTOR", LFR_INT(0)}},
+	},
+	{"on_exit", on_actor_event_proc,
 		{{"ONCE", LFR_BOOL(false)}, {"FILTER", LFR_INT(-1)}},
 		{{"ACTOR", LFR_INT(0)}},
 	},
@@ -384,6 +389,9 @@ int main( int argc, char** argv) {
 			bool old_status = pop.actor_hovers[i];
 			if (new_status && new_status != old_status) {
 				lfr_defer_instruction(gi_on_enter_event + (1 << 8), i, &graph, &graph_state);
+			}
+			if (!new_status && new_status != old_status) {
+				lfr_defer_instruction(gi_on_exit_event + (1 << 8), i, &graph, &graph_state);
 			}
 			pop.actor_hovers[i] = new_status;
 		}
