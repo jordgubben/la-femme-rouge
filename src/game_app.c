@@ -37,6 +37,7 @@ LFR Scripting "game" used to demonstrate how to integrate LFR with an existing a
 
 // Debug helpers
 #define SHOW_CURSOR_DEBUG 1
+#define SHOW_LFR_DEBUG 1
 
 // Shader program
 
@@ -374,6 +375,10 @@ int main( int argc, char** argv) {
 
 		// LFR editor
 		lfr_show_editor(&editor, &vm, &graph, &graph_state);
+
+#ifdef SHOW_LFR_DEBUG
+		lfr_show_debug(ctx, &graph, &graph_state);
+#endif
 
 #if SHOW_CURSOR_DEBUG
 		// Debug window
