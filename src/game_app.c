@@ -341,8 +341,9 @@ int main( int argc, char** argv) {
 		lfr_link_data(n1, 0, n2, 1, &graph);
 	}
 
-	// Script stepping and ticking timers
-	double last_step_time = glfwGetTime(), last_tick_time = last_step_time;
+	// Delta time + script stepping and ticking timers
+	double last_frame_time = glfwGetTime();
+	double last_step_time = last_frame_time, last_tick_time = last_frame_time;
 	const double time_between_steps = .1f;
 	const double time_between_ticks = 1.f;
 
@@ -387,8 +388,11 @@ int main( int argc, char** argv) {
 			pop.actor_hovers[i] = new_status;
 		}
 
-		// Curent time
+		// Get delta time
 		double now = glfwGetTime();
+		double dt = now - last_frame_time;
+		last_frame_time = now;
+		lfr_forward_state_time((float) dt, &graph_state);
 
 		// Schedule tick
 		while (now > last_tick_time + time_between_ticks) {
