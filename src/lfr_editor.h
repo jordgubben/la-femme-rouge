@@ -249,6 +249,16 @@ void show_individual_node_window(
 			// even if the buttons ate hidden
 			for (int i = 0; i < graph->num_flow_links; i++) {
 				lfr_flow_link_t *link = &graph->flow_links[i];
+
+				// Source end
+				if (link->source_node.id == node_id.id) {
+					// Get attachment point for flow lines
+					struct nk_panel* panel = nk_window_get_panel(ctx);
+					app->flow_link_points[i].source =
+						(lfr_vec2_t) {panel->at_x + panel->bounds.w, panel->at_y + 20/2};
+				}
+
+				// Target end
 				if (link->target_node.id == node_id.id) {
 					// Get attachment point for flow lines
 					struct nk_panel* panel = nk_window_get_panel(ctx);
@@ -371,6 +381,11 @@ void show_node_main_flow_section(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_
 			if (nk_button_label(ctx, label)) {
 				lfr_unlink_nodes(link->source_node, link->target_node, graph);
 			}
+
+			// Get attachment point for flow lines
+			struct nk_panel* panel = nk_window_get_panel(ctx);
+			app->flow_link_points[i].source=
+				(lfr_vec2_t) {panel->at_x + panel->bounds.w, panel->at_y + 15/2};
 		}
 
 		nk_group_end(ctx);
@@ -617,13 +632,9 @@ void draw_flow_link_lines(const lfr_editor_t *app, const lfr_graph_t *graph, str
 
 	for (int i = 0; i < graph->num_flow_links; i++) {
 		const lfr_flow_link_t *link = &graph->flow_links[i];
-		// Source end
-		lfr_vec2_t p1 = lfr_get_node_position(link->source_node, &graph->nodes);
-		p1.x += node_window_w;
-		p1.y += 20;
 
-		// Target end
-		unsigned target_index = lfr_get_node_index(link->target_node, &graph->nodes);
+		// Get source and target ends from layouting
+		lfr_vec2_t p1 = app->flow_link_points[i].source;
 		lfr_vec2_t p2 = app->flow_link_points[i].target;
 
 		// Draw curve
