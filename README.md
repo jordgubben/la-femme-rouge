@@ -1,6 +1,8 @@
 # La Femme Rouge (LFR)
 La Femme Rouge is a minimal graph based scripting system intended for games.
 
+![Example screenshot demonstrating a lot of nodes](doc/images/lfr_example.png)
+
 ## Features
  - Single header C file (with minimal dependencies)
  - Editor included (in separare header)
