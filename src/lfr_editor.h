@@ -28,6 +28,7 @@ typedef struct lfr_editor_ {
 
 	// Removing nodes
 	lfr_node_id_t removal_of_node_requested;
+	unsigned skip_drawin_lines;
 
 	// Layout
 	struct nk_rect outer_bounds;
@@ -99,8 +100,17 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 		{
 			struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
 			nk_fill_rect(canvas, nk_window_get_bounds(ctx), 0.f, nk_rgb(30,10,10));
-			draw_flow_link_lines(app, graph, canvas);
-			draw_data_link_lines(app, graph, canvas);
+			if (app->skip_drawin_lines) {
+				// Skip drawin lines this frame to reduce flickering
+				// caused when removing a node reorders the node table
+				// This is a hack and it does not look good,
+				// but it's a relative improvement relative to the
+				// almost seizure inducing flickering that it prevents
+				app->skip_drawin_lines--;
+			} else {
+				draw_flow_link_lines(app, graph, canvas);
+				draw_data_link_lines(app, graph, canvas);
+			}
 			draw_link_selection_curve(app, graph, canvas);
 		}
 
@@ -141,6 +151,7 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 	if (app->removal_of_node_requested.id) {
 		lfr_remove_node(app->removal_of_node_requested, graph);
 		app->removal_of_node_requested = (lfr_node_id_t) {0};
+		app->skip_drawin_lines = 2;
 	}
 
 	// Return editor to 'normal' mode by clicking on background
