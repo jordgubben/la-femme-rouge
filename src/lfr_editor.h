@@ -35,8 +35,9 @@ typedef struct lfr_editor_ {
 	struct {
 		lfr_vec2_t source, target;
 	} flow_link_points[lfr_graph_max_flow_links];
-	float input_ys[lfr_node_table_max_rows][lfr_signature_size];
-	lfr_vec2_t output_positions[lfr_node_table_max_rows][lfr_signature_size];
+	struct {
+		lfr_vec2_t inputs[lfr_signature_size], outputs[lfr_signature_size];
+	} data_link_points[lfr_node_table_max_rows];
 } lfr_editor_t;
 
 
@@ -480,7 +481,12 @@ void show_node_input_slots_group(
 		// Get current y
 		// (Use when rendering slot connections)
 		struct nk_panel* panel = nk_window_get_panel(ctx);
-		app->input_ys[node_index][slot] = panel->at_y + 15/2;
+		app->data_link_points[node_index].inputs[slot] = (lfr_vec2_t)
+			{
+			panel->bounds.x - 5,
+			panel->at_y + 15/2
+			};
+
 
 		// Current input value (linked or fixed)
 		// (Set a new value if it's changed by the UI, and breaks any link))
@@ -594,8 +600,9 @@ void show_node_output_slots_group(
 		// Get current output point
 		// (Use when rendering slot connections)
 		struct nk_panel* panel = nk_window_get_panel(ctx);
-		app->output_positions[node_index][slot] =
-			(lfr_vec2_t) {panel->bounds.x + panel->bounds.w + 30, panel->at_y + 15/2};
+		app->data_link_points[node_index].outputs[slot] = (lfr_vec2_t) {
+			panel->bounds.x + panel->bounds.w + 15,
+			panel->at_y + 15/2};
 
 		// Value
 		nk_layout_row_dynamic(ctx, LFR_SLOT_VALUE_ROW_H, 1);
@@ -690,12 +697,12 @@ void draw_data_link_lines(const lfr_editor_t *app, const lfr_graph_t *graph, str
 			if (!out_node_id.id) { continue; }
 
 			// Input slot height (on this node)
-			lfr_vec2_t in_pos = {node_win_pos.x, app->input_ys[node_index][slot]};
+			lfr_vec2_t in_pos =  app->data_link_points[node_index].inputs[slot];
 
 			// Output slot position (on other node)
 			unsigned output_index = lfr_get_node_index(out_node_id, &graph->nodes);
 			unsigned output_slot = node->input_data[slot].slot;
-			lfr_vec2_t out_pos = app->output_positions[output_index][output_slot];
+			lfr_vec2_t out_pos = app->data_link_points[output_index].outputs[output_slot];
 
 			// Draw curve
 			const float ex = 100;
