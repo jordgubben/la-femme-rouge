@@ -45,9 +45,7 @@ This project is still in it's infancy. Here are a few of the most obvious things
  - Editor does some of the node placement and rearranging for you (focus on your game, not on unwrangling node scripts)
  - Test on other compilers than Clang
  - Automated builds on macOS/Linux/Windows
- - Handle larger graphs better in the LFR Editor
  - Hide data slots in node windows (like for flow links)
- - Snap flow link lines to resized node windows (like for data links)
  - Various other UI tweaks
  - Automated tests (where it makes most sense)
 
