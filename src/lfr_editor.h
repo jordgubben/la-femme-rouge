@@ -49,7 +49,7 @@ void lfr_show_debug(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
 #endif // LFR_EDITOR_H
 
 #ifdef LFR_EDITOR_IMPLEMENTATION
-#define SHOW_WINDOW_INTERNALS_SECTION 1
+#define SHOW_WINDOW_INTERNALS_SECTION 0
 
 // Individual node windows
 void show_individual_node_window(lfr_node_id_t, const lfr_vm_t*, lfr_graph_t*, lfr_graph_state_t*, lfr_editor_t*);
@@ -104,7 +104,7 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 			draw_link_selection_curve(app, graph, canvas);
 		}
 
-#ifdef SHOW_WINDOW_INTERNALS_SECTION
+#if SHOW_WINDOW_INTERNALS_SECTION
 		show_window_internals_section(ctx);
 #endif // SHOW_WINDOW_INTERNALS_SECTION
 
@@ -127,7 +127,7 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 
 		nk_layout_space_end(ctx);
 
-#ifdef SHOW_WINDOW_INTERNALS_SECTION
+#if SHOW_WINDOW_INTERNALS_SECTION
 		show_window_internals_section(ctx);
 #endif // SHOW_WINDOW_INTERNALS_SECTION
 
