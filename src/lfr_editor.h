@@ -61,7 +61,6 @@ void show_node_output_slots_group(lfr_node_id_t,
 	const lfr_vm_t *, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
 
 // Lines between nodes
-void show_editor_bg_window(lfr_graph_t *, const lfr_vm_t*, const lfr_editor_t *);
 void draw_flow_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
 void draw_data_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
 void draw_link_selection_curve(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
@@ -655,25 +654,6 @@ void show_node_output_slots_group(
 #undef LFR_SLOT_NAME_ROW_H
 #undef LFR_SLOT_VALUE_ROW_H
 #undef LFR_SLOT_H
-
-/**
-Show background window with flow lines, link selection and context menu for creating new nodes.
-**/
-void show_editor_bg_window(lfr_graph_t *graph, const lfr_vm_t *vm, const lfr_editor_t *app) {
-	assert(graph && app);
-	struct nk_context *ctx = app->ctx;
-
-	if (nk_begin(ctx, bg_window_title, app->outer_bounds, NK_WINDOW_BACKGROUND)) {
-		struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
-
-		nk_fill_rect(canvas, nk_window_get_bounds(ctx), 0.f, nk_rgb(20,20,20));
-		draw_flow_link_lines(app, graph, canvas);
-		draw_data_link_lines(app, graph, canvas);
-		draw_link_selection_curve(app, graph, canvas);
-		show_node_creation_contextual_menu(vm, ctx, graph);
-	}
-	nk_end(ctx);
-}
 
 
 /*
