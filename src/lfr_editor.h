@@ -110,7 +110,6 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 				draw_flow_link_lines(app, graph, canvas);
 				draw_data_link_lines(app, graph, canvas);
 			}
-			draw_link_selection_curve(app, graph, canvas);
 		}
 
 #if SHOW_WINDOW_INTERNALS_SECTION
@@ -718,6 +717,9 @@ void draw_data_link_lines(const lfr_editor_t *app, const lfr_graph_t *graph, str
 
 /*
 Draw selection curve (if in one of the appropriate modes).
+
+TODO: Attach properly to already selected end
+TODO: Draw a nice curvy line (on top of everything else)
 */
 void draw_link_selection_curve(
 		const lfr_editor_t *app,

@@ -48,6 +48,8 @@ This project is still in it's infancy. Here are a few of the most obvious things
  - Test on other compilers than Clang
  - Automated builds on macOS/Linux/Windows
  - Hide data slots in node windows (like for flow links)
+ - Draw a line (on top of everything else) when linking
+ - Find a good way to exit linking mode(s)
  - Various other UI tweaks
  - Automated tests (where it makes most sense)
 
