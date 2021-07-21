@@ -93,9 +93,11 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 		| NK_WINDOW_SCALABLE
 		;
 	if (nk_begin(ctx, "Editor window", app->outer_bounds, window_flags)) {
-		// Draw lines
+
+		// Draw bg and lines
 		{
 			struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+			nk_fill_rect(canvas, nk_window_get_bounds(ctx), 0.f, nk_rgb(30,10,10));
 			draw_flow_link_lines(app, graph, canvas);
 			draw_data_link_lines(app, graph, canvas);
 			draw_link_selection_curve(app, graph, canvas);
