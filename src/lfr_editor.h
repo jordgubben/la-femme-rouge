@@ -101,7 +101,6 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 			draw_flow_link_lines(app, graph, canvas);
 			draw_data_link_lines(app, graph, canvas);
 			draw_link_selection_curve(app, graph, canvas);
-			show_node_creation_contextual_menu(vm, ctx, graph);
 		}
 
 #ifdef SHOW_WINDOW_INTERNALS_SECTION
@@ -130,6 +129,9 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 #ifdef SHOW_WINDOW_INTERNALS_SECTION
 		show_window_internals_section(ctx);
 #endif // SHOW_WINDOW_INTERNALS_SECTION
+
+		// Context menu (create nodes)
+		show_node_creation_contextual_menu(vm, ctx, graph);
 	}
 	nk_end(ctx);
 
