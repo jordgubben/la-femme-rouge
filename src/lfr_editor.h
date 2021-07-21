@@ -31,6 +31,7 @@ typedef struct lfr_editor_ {
 
 	// Layout
 	struct nk_rect outer_bounds;
+	float node_heights[lfr_node_table_max_rows];
 	struct {
 		lfr_vec2_t source, target;
 	} flow_link_points[lfr_graph_max_flow_links];
@@ -110,12 +111,13 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 		nk_layout_space_begin(ctx, NK_STATIC, app->outer_bounds.h, num_nodes);
 
 		lfr_node_id_t *node_ids = &graph->nodes.dense_id[0];
-		for (int index = 0; index < num_nodes; index++) {
-			lfr_node_id_t node_id = node_ids[index];
+		for (int node_index = 0; node_index < num_nodes; node_index++) {
+			lfr_node_id_t node_id = node_ids[node_index];
 
 			// Layout
 			lfr_vec2_t pos = lfr_get_node_position(node_id, &graph->nodes);
-			struct nk_rect group_placement = {pos.x, pos.y, 200, 200};
+			float height = app->node_heights[node_index];
+			struct nk_rect group_placement = {pos.x, pos.y, 200, height};
 			nk_layout_space_push(ctx, group_placement);
 
 			show_individual_node_window(node_id, vm, graph, state, app);
@@ -199,20 +201,20 @@ void show_individual_node_window(
 	struct nk_context *ctx = app->ctx;
 	struct nk_panel *group_panel;
 
-	unsigned index = lfr_get_node_index(node_id, &graph->nodes);
+	unsigned node_index = lfr_get_node_index(node_id, &graph->nodes);
 
 	// Window name (internal identifier)
 	char name[128];
-	snprintf(name, 128, "[#%u|%u]" , node_id.id, index);
+	snprintf(name, 128, "[#%u|%u]" , node_id.id, node_index);
 
 	// Window title
 	char title[1024];
-	lfr_instruction_e inst = graph->nodes.node[index].instruction;
+	lfr_instruction_e inst = graph->nodes.node[node_index].instruction;
 	const char* inst_name = lfr_get_instruction_name(inst, vm);
 	bool next_scheduled = (state->num_schedueled_nodes && node_id.id ==  state->schedueled_nodes[0].id);
 	bool next_deferred = (state->num_deferred_nodes && node_id.id ==  state->deferred_nodes[0].node.id);
 	snprintf(title, 1024, "[#%u|%u] %s%s%s"
-		, node_id.id, index, inst_name
+		, node_id.id, node_index, inst_name
 		, next_scheduled ? " (next scheduled)" : ""
 		, next_deferred ? " (next deferred)" : ""
 		);
@@ -224,8 +226,8 @@ void show_individual_node_window(
 	// Show the window
 	nk_flags flags = 0
 		| NK_WINDOW_MOVABLE
-		| NK_WINDOW_SCALABLE
 		| NK_WINDOW_TITLE
+		| NK_WINDOW_NO_SCROLLBAR
 		;
 	if (nk_group_begin_titled(ctx, name, title, flags)) {
 		group_panel = nk_window_get_panel(ctx);
@@ -237,12 +239,12 @@ void show_individual_node_window(
 				if (nk_button_label(ctx, "Prev?")){
 					app->mode = em_select_flow_prev;
 					app->active_node_id = node_id;
-					printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, index);
+					printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, node_index);
 				}
 				if (nk_button_label(ctx, "Next?")) {
 					app->mode = em_select_flow_next;
 					app->active_node_id = node_id;
-					printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, index);
+					printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, node_index);
 				}
 			}
 
@@ -322,13 +324,19 @@ void show_individual_node_window(
 		}
 
 		// Misc. management
-		nk_layout_row_dynamic(ctx, 0, 2);
+		const float final_buttons_height = 30;
+		nk_layout_row_dynamic(ctx, final_buttons_height, 2);
 		if (nk_button_label(ctx, "Remove me")) {
 			app->removal_of_node_requested = node_id;
 		}
 		if (nk_button_label(ctx, "Schedule me")) {
 			lfr_schedule_node(node_id, graph, state);
 		}
+
+		// Get the right node height (for next frame)
+		int content_height = group_panel->at_y - group_panel->bounds.y + final_buttons_height;
+		int full_h = content_height + group_panel->header_height + group_panel->footer_height + 5;
+		app->node_heights[node_index] = full_h;
 
 		nk_group_end(ctx);
 	}
