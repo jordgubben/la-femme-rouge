@@ -118,9 +118,18 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 		show_window_internals_section(ctx);
 #endif // SHOW_WINDOW_INTERNALS_SECTION
 
+		// Figgure out how much space to reserve
+		float lowest_y = 0;
+		for (int i = 0; i < graph->nodes.num_rows; i++) {
+			float node_y = graph->nodes.position[i].y;
+			lowest_y = (node_y > lowest_y ? node_y : lowest_y);
+		}
+		float content_height = lowest_y + 500.f;
+		content_height = (app->outer_bounds.h > content_height ? app->outer_bounds.y : content_height);
+
 		// Show nodes as space layout groups
 		int num_nodes = graph->nodes.num_rows;
-		nk_layout_space_begin(ctx, NK_STATIC, app->outer_bounds.h, num_nodes);
+		nk_layout_space_begin(ctx, NK_STATIC, content_height, num_nodes);
 
 		lfr_node_id_t *node_ids = &graph->nodes.dense_id[0];
 		for (int node_index = 0; node_index < num_nodes; node_index++) {
