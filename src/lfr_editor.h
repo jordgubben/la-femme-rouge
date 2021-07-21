@@ -28,11 +28,17 @@ typedef struct lfr_editor_ {
 
 	// Removing nodes
 	lfr_node_id_t removal_of_node_requested;
+	unsigned skip_drawin_lines;
 
 	// Layout
 	struct nk_rect outer_bounds;
-	float input_ys[lfr_node_table_max_rows][lfr_signature_size];
-	lfr_vec2_t output_positions[lfr_node_table_max_rows][lfr_signature_size];
+	float node_heights[lfr_node_table_max_rows];
+	struct {
+		lfr_vec2_t source, target;
+	} flow_link_points[lfr_graph_max_flow_links];
+	struct {
+		lfr_vec2_t inputs[lfr_signature_size], outputs[lfr_signature_size];
+	} data_link_points[lfr_node_table_max_rows];
 } lfr_editor_t;
 
 
@@ -44,10 +50,11 @@ void lfr_show_debug(struct nk_context*, lfr_graph_t *, lfr_graph_state_t *);
 #endif // LFR_EDITOR_H
 
 #ifdef LFR_EDITOR_IMPLEMENTATION
+#define SHOW_WINDOW_INTERNALS_SECTION 0
 
 // Individual node windows
 void show_individual_node_window(lfr_node_id_t, const lfr_vm_t*, lfr_graph_t*, lfr_graph_state_t*, lfr_editor_t*);
-void show_node_main_flow_section(lfr_node_id_t, lfr_graph_t *, struct nk_context *);
+void show_node_main_flow_section(lfr_node_id_t, lfr_graph_t *, lfr_editor_t *);
 void show_node_input_slots_group(lfr_node_id_t,
 	const lfr_vm_t*, const lfr_graph_state_t*, lfr_graph_t*, lfr_editor_t*);
 void show_node_output_slots_group(lfr_node_id_t,
@@ -60,6 +67,8 @@ void draw_data_link_lines(const lfr_editor_t *, const lfr_graph_t *, struct nk_c
 void draw_link_selection_curve(const lfr_editor_t *, const lfr_graph_t *, struct nk_command_buffer *);
 void show_node_creation_contextual_menu(const lfr_vm_t *, struct nk_context *, lfr_graph_t *);
 
+// Understand Nuklear better
+void show_window_internals_section(struct nk_context *);
 
 static const char *bg_window_title = "Graph editor BG";
 static const unsigned node_window_w = 210, node_window_h = 330;
@@ -80,22 +89,78 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 	assert(app && graph && state);
 	struct nk_context *ctx = app->ctx;
 
-	// Show nodes as individual windows
-	lfr_node_id_t *node_ids = &graph->nodes.dense_id[0];
-	int num_nodes = graph->nodes.num_rows;
-	for (int index = 0; index < num_nodes; index++) {
-		lfr_node_id_t node_id = node_ids[index];
-		show_individual_node_window(node_id, vm, graph, state, app);
-	}
+	nk_flags window_flags = 0
+		| NK_WINDOW_TITLE
+		| NK_WINDOW_MOVABLE
+		| NK_WINDOW_SCALABLE
+		;
+	if (nk_begin(ctx, "Editor window", app->outer_bounds, window_flags)) {
 
-	// Show node flow et.al.
-	show_editor_bg_window(graph, vm, app);
+		// Draw bg and lines
+		{
+			struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+			nk_fill_rect(canvas, nk_window_get_bounds(ctx), 0.f, nk_rgb(30,10,10));
+			if (app->skip_drawin_lines) {
+				// Skip drawin lines this frame to reduce flickering
+				// caused when removing a node reorders the node table
+				// This is a hack and it does not look good,
+				// but it's a relative improvement relative to the
+				// almost seizure inducing flickering that it prevents
+				app->skip_drawin_lines--;
+			} else {
+				draw_flow_link_lines(app, graph, canvas);
+				draw_data_link_lines(app, graph, canvas);
+			}
+			draw_link_selection_curve(app, graph, canvas);
+		}
+
+#if SHOW_WINDOW_INTERNALS_SECTION
+		show_window_internals_section(ctx);
+#endif // SHOW_WINDOW_INTERNALS_SECTION
+
+		// Figgure out how much space to reserve
+		float lowest_y = 0;
+		for (int i = 0; i < graph->nodes.num_rows; i++) {
+			float node_y = graph->nodes.position[i].y;
+			lowest_y = (node_y > lowest_y ? node_y : lowest_y);
+		}
+		float content_height = lowest_y + 500.f;
+		content_height = (app->outer_bounds.h > content_height ? app->outer_bounds.y : content_height);
+
+		// Show nodes as space layout groups
+		int num_nodes = graph->nodes.num_rows;
+		nk_layout_space_begin(ctx, NK_STATIC, content_height, num_nodes);
+
+		lfr_node_id_t *node_ids = &graph->nodes.dense_id[0];
+		for (int node_index = 0; node_index < num_nodes; node_index++) {
+			lfr_node_id_t node_id = node_ids[node_index];
+
+			// Layout
+			lfr_vec2_t pos = lfr_get_node_position(node_id, &graph->nodes);
+			float height = app->node_heights[node_index];
+			struct nk_rect group_placement = {pos.x, pos.y, 200, height};
+			nk_layout_space_push(ctx, group_placement);
+
+			show_individual_node_window(node_id, vm, graph, state, app);
+		}
+
+		nk_layout_space_end(ctx);
+
+#if SHOW_WINDOW_INTERNALS_SECTION
+		show_window_internals_section(ctx);
+#endif // SHOW_WINDOW_INTERNALS_SECTION
+
+		// Context menu (create nodes)
+		show_node_creation_contextual_menu(vm, ctx, graph);
+	}
+	nk_end(ctx);
 
 	// Remove node that has recently had it's window closed
 	// (Avoid pain by waitning until after cycling through nodes before removing one)
 	if (app->removal_of_node_requested.id) {
 		lfr_remove_node(app->removal_of_node_requested, graph);
 		app->removal_of_node_requested = (lfr_node_id_t) {0};
+		app->skip_drawin_lines = 2;
 	}
 
 	// Return editor to 'normal' mode by clicking on background
@@ -103,6 +168,45 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 		app->mode = em_normal;
 	}
 }
+
+
+/*
+Helper function tomunderstand Nuklear and it's layouting system better
+*/
+void show_window_internals_section(struct nk_context *ctx) {
+	// Window bounds
+	{
+		struct nk_rect window_bounds = nk_window_get_bounds(ctx);
+		nk_layout_row_dynamic(ctx, 0, 5);
+		nk_label(ctx, "Window bounds", NK_TEXT_LEFT);
+		nk_property_float(ctx, "#x", 0, &window_bounds.x, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#y", 0, &window_bounds.y, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#w", 0, &window_bounds.w, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#h", 0, &window_bounds.h, FLT_MAX, 1,1);
+	}
+
+	// Window content region
+	{
+		struct nk_rect window_region = nk_window_get_content_region(ctx);
+		nk_layout_row_dynamic(ctx, 0, 5);
+		nk_label(ctx, "Window content region", NK_TEXT_LEFT);
+		nk_property_float(ctx, "#x", 0, &window_region.x, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#y", 0, &window_region.y, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#w", 0, &window_region.w, FLT_MAX, 1,1);
+		nk_property_float(ctx, "#h", 0, &window_region.h, FLT_MAX, 1,1);
+	}
+
+	// Window scroll
+	{
+		unsigned scroll_x, scroll_y;
+		nk_window_get_scroll(ctx, &scroll_x, &scroll_y);
+		nk_layout_row_dynamic(ctx, 0, 3);
+		nk_label(ctx, "Window scroll", NK_TEXT_LEFT);
+		nk_propertyi(ctx, "#x", 0, scroll_x, INT_MAX, 1,1);
+		nk_propertyi(ctx, "#y", 0, scroll_y, INT_MAX, 1,1);
+	}
+}
+
 
 // Tmp. Layout constants (undefined when no longer needed)
 #define LFR_SLOT_NAME_ROW_H 18
@@ -120,21 +224,22 @@ void show_individual_node_window(
 		lfr_editor_t *app) {
 	assert(graph && state && app);
 	struct nk_context *ctx = app->ctx;
+	struct nk_panel *group_panel;
 
-	unsigned index = lfr_get_node_index(node_id, &graph->nodes);
+	unsigned node_index = lfr_get_node_index(node_id, &graph->nodes);
 
 	// Window name (internal identifier)
 	char name[128];
-	snprintf(name, 128, "[#%u|%u]" , node_id.id, index);
+	snprintf(name, 128, "[#%u|%u]" , node_id.id, node_index);
 
 	// Window title
 	char title[1024];
-	lfr_instruction_e inst = graph->nodes.node[index].instruction;
+	lfr_instruction_e inst = graph->nodes.node[node_index].instruction;
 	const char* inst_name = lfr_get_instruction_name(inst, vm);
 	bool next_scheduled = (state->num_schedueled_nodes && node_id.id ==  state->schedueled_nodes[0].id);
 	bool next_deferred = (state->num_deferred_nodes && node_id.id ==  state->deferred_nodes[0].node.id);
 	snprintf(title, 1024, "[#%u|%u] %s%s%s"
-		, node_id.id, index, inst_name
+		, node_id.id, node_index, inst_name
 		, next_scheduled ? " (next scheduled)" : ""
 		, next_deferred ? " (next deferred)" : ""
 		);
@@ -146,10 +251,12 @@ void show_individual_node_window(
 	// Show the window
 	nk_flags flags = 0
 		| NK_WINDOW_MOVABLE
-		| NK_WINDOW_SCALABLE
 		| NK_WINDOW_TITLE
+		| NK_WINDOW_NO_SCROLLBAR
 		;
-	if (nk_begin_titled(ctx, name, title, rect, flags)) {
+	if (nk_group_begin_titled(ctx, name, title, flags)) {
+		group_panel = nk_window_get_panel(ctx);
+
 		if (nk_tree_push_id(ctx, NK_TREE_NODE, "Main flow", NK_MINIMIZED, node_id.id)){
 			// Add new links
 			if (app->mode == em_normal) {
@@ -157,18 +264,48 @@ void show_individual_node_window(
 				if (nk_button_label(ctx, "Prev?")){
 					app->mode = em_select_flow_prev;
 					app->active_node_id = node_id;
-					printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, index);
+					printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, node_index);
 				}
 				if (nk_button_label(ctx, "Next?")) {
 					app->mode = em_select_flow_next;
 					app->active_node_id = node_id;
-					printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, index);
+					printf("Entered select prev mode for [#%u|%u]].\n", node_id.id, node_index);
 				}
 			}
 
-			show_node_main_flow_section(node_id, graph, ctx);
+			show_node_main_flow_section(node_id, graph, app);
 
 			nk_tree_pop(ctx);
+		} else {
+			// Need this to compensate to for groups scroll bar
+			unsigned scroll_y;
+			nk_group_get_scroll(ctx, name, NULL, &scroll_y);
+
+			// Get attachement point for each link targeting this node
+			// even if the buttons ate hidden
+			for (int i = 0; i < graph->num_flow_links; i++) {
+				lfr_flow_link_t *link = &graph->flow_links[i];
+
+				// Source end
+				if (link->source_node.id == node_id.id) {
+					// Get attachment point for flow lines
+					struct nk_panel* panel = nk_window_get_panel(ctx);
+					app->flow_link_points[i].source = (lfr_vec2_t) {
+						panel->at_x + panel->bounds.w,
+						panel->at_y + 20/2 - scroll_y
+						};
+				}
+
+				// Target end
+				if (link->target_node.id == node_id.id) {
+					// Get attachment point for flow lines
+					struct nk_panel* panel = nk_window_get_panel(ctx);
+					app->flow_link_points[i].target = (lfr_vec2_t) {
+						panel->at_x,
+						panel->at_y + 20/2 - scroll_y
+						};
+				}
+			}
 		}
 
 		// Show "Link with this" button?
@@ -212,7 +349,8 @@ void show_individual_node_window(
 		}
 
 		// Misc. management
-		nk_layout_row_dynamic(ctx, 0, 2);
+		const float final_buttons_height = 30;
+		nk_layout_row_dynamic(ctx, final_buttons_height, 2);
 		if (nk_button_label(ctx, "Remove me")) {
 			app->removal_of_node_requested = node_id;
 		}
@@ -220,19 +358,28 @@ void show_individual_node_window(
 			lfr_schedule_node(node_id, graph, state);
 		}
 
-		// Update node position
-		struct nk_vec2 p = nk_window_get_position(ctx);
-		lfr_vec2_t node_pos = {p.x, p.y};
-		lfr_set_node_position(node_id, node_pos, &graph->nodes);
+		// Get the right node height (for next frame)
+		int content_height = group_panel->at_y - group_panel->bounds.y + final_buttons_height;
+		int full_h = content_height + group_panel->header_height + group_panel->footer_height + 5;
+		app->node_heights[node_index] = full_h;
+
+		nk_group_end(ctx);
 	}
-	nk_end(ctx);
+
+	// Update node position
+	struct nk_rect group_bounds = nk_layout_space_rect_to_local(ctx, group_panel->bounds);
+	lfr_vec2_t node_pos = {group_bounds.x, group_bounds.y};
+	lfr_set_node_position(node_id, node_pos, &graph->nodes);
 }
 
 
 /*
 Show all links involved in the given nodes main flow.
 */
-void show_node_main_flow_section(lfr_node_id_t node_id, lfr_graph_t *graph, struct nk_context *ctx) {
+void show_node_main_flow_section(lfr_node_id_t node_id, lfr_graph_t *graph, lfr_editor_t *app) {
+	assert(graph && app);
+	struct nk_context *ctx = app->ctx;
+
 	unsigned sl_count = lfr_count_node_source_links(node_id, graph);
 	unsigned tl_count = lfr_count_node_target_links(node_id, graph);
 	unsigned max_links = (sl_count > tl_count ? sl_count : tl_count);
@@ -256,6 +403,10 @@ void show_node_main_flow_section(lfr_node_id_t node_id, lfr_graph_t *graph, stru
 			if (nk_button_label(ctx, label)) {
 				lfr_unlink_nodes(link->source_node, link->target_node, graph);
 			}
+
+			// Get attachment point for flow lines
+			struct nk_panel* panel = nk_window_get_panel(ctx);
+			app->flow_link_points[i].target = (lfr_vec2_t) {panel->at_x , panel->at_y + 15/2};
 		}
 
 		nk_group_end(ctx);
@@ -276,6 +427,11 @@ void show_node_main_flow_section(lfr_node_id_t node_id, lfr_graph_t *graph, stru
 			if (nk_button_label(ctx, label)) {
 				lfr_unlink_nodes(link->source_node, link->target_node, graph);
 			}
+
+			// Get attachment point for flow lines
+			struct nk_panel* panel = nk_window_get_panel(ctx);
+			app->flow_link_points[i].source=
+				(lfr_vec2_t) {panel->at_x + panel->bounds.w, panel->at_y + 15/2};
 		}
 
 		nk_group_end(ctx);
@@ -345,7 +501,12 @@ void show_node_input_slots_group(
 		// Get current y
 		// (Use when rendering slot connections)
 		struct nk_panel* panel = nk_window_get_panel(ctx);
-		app->input_ys[node_index][slot] = panel->at_y + 15/2;
+		app->data_link_points[node_index].inputs[slot] = (lfr_vec2_t)
+			{
+			panel->bounds.x - 5,
+			panel->at_y + 15/2
+			};
+
 
 		// Current input value (linked or fixed)
 		// (Set a new value if it's changed by the UI, and breaks any link))
@@ -456,11 +617,12 @@ void show_node_output_slots_group(
 			}
 		}
 
-		// Get current y
+		// Get current output point
 		// (Use when rendering slot connections)
 		struct nk_panel* panel = nk_window_get_panel(ctx);
-		app->output_positions[node_index][slot] =
-			(lfr_vec2_t) {panel->bounds.x + panel->bounds.w + 30, panel->at_y + 15/2};
+		app->data_link_points[node_index].outputs[slot] = (lfr_vec2_t) {
+			panel->bounds.x + panel->bounds.w + 15,
+			panel->at_y + 15/2};
 
 		// Value
 		nk_layout_row_dynamic(ctx, LFR_SLOT_VALUE_ROW_H, 1);
@@ -522,14 +684,10 @@ void draw_flow_link_lines(const lfr_editor_t *app, const lfr_graph_t *graph, str
 
 	for (int i = 0; i < graph->num_flow_links; i++) {
 		const lfr_flow_link_t *link = &graph->flow_links[i];
-		// Source end
-		lfr_vec2_t p1 = lfr_get_node_position(link->source_node, &graph->nodes);
-		p1.x += node_window_w;
-		p1.y += 20;
 
-		// Target end
-		lfr_vec2_t p2 = lfr_get_node_position(link->target_node, &graph->nodes);
-		p2.y += 20;
+		// Get source and target ends from layouting
+		lfr_vec2_t p1 = app->flow_link_points[i].source;
+		lfr_vec2_t p2 = app->flow_link_points[i].target;
 
 		// Draw curve
 		const float ex = 75;
@@ -559,12 +717,12 @@ void draw_data_link_lines(const lfr_editor_t *app, const lfr_graph_t *graph, str
 			if (!out_node_id.id) { continue; }
 
 			// Input slot height (on this node)
-			lfr_vec2_t in_pos = {node_win_pos.x, app->input_ys[node_index][slot]};
+			lfr_vec2_t in_pos =  app->data_link_points[node_index].inputs[slot];
 
 			// Output slot position (on other node)
 			unsigned output_index = lfr_get_node_index(out_node_id, &graph->nodes);
 			unsigned output_slot = node->input_data[slot].slot;
-			lfr_vec2_t out_pos = app->output_positions[output_index][output_slot];
+			lfr_vec2_t out_pos = app->data_link_points[output_index].outputs[output_slot];
 
 			// Draw curve
 			const float ex = 100;
@@ -617,12 +775,23 @@ Show contexual menu for creating new nodes.
 void show_node_creation_contextual_menu(const lfr_vm_t *vm, struct nk_context* ctx, lfr_graph_t *graph) {
 	assert(ctx && graph);
 
+	// Save window bounds upper left corner for later
+	// (we will ned it to get the relative position of the context menu)
+	struct nk_panel *window_panel = nk_window_get_panel(ctx);
+
 	// Open context menu - or early out if it can't be opened
 	float row_height = 25;
 	int num_rows = lfr_no_core_instructions + vm->num_custom_instructions;
 	struct nk_vec2 size = nk_vec2(150, row_height * num_rows );
 	struct nk_rect trigger_bounds = nk_window_get_bounds(ctx);
 	if (!nk_contextual_begin(ctx, 0, size, trigger_bounds)) { return; }
+
+	// Get context menu top-left corner
+	struct nk_panel *menu_panel = nk_window_get_panel(ctx);
+	lfr_vec2_t creation_pos = {
+		menu_panel->bounds.x - window_panel->bounds.x,
+		menu_panel->bounds.y - window_panel->bounds.y
+		};
 
 	// List all available options
 	nk_layout_row_dynamic(ctx, row_height -5, 1);
@@ -631,13 +800,9 @@ void show_node_creation_contextual_menu(const lfr_vm_t *vm, struct nk_context* c
 	for (int i = 0; i < lfr_no_core_instructions; i++) {
 		const char* name = lfr_get_core_instruction_name(i, vm);
 		if ( nk_contextual_item_label(ctx, name, NK_TEXT_LEFT)) {
-			// Create node
+			// Create node at context menu origin
 			lfr_node_id_t id = lfr_add_node(i, graph);
-
-			// Position at cursor
-			struct nk_vec2 mouse_pos = ctx->input.mouse.pos;
-			lfr_vec2_t node_pos = {mouse_pos.x, mouse_pos.y};
-			lfr_set_node_position(id, node_pos, &graph->nodes);
+			lfr_set_node_position(id, creation_pos, &graph->nodes);
 		}
 	}
 
@@ -645,13 +810,9 @@ void show_node_creation_contextual_menu(const lfr_vm_t *vm, struct nk_context* c
 	for (int i = 0; i < vm->num_custom_instructions; i++) {
 		const char* name = lfr_get_custom_instruction_name(i, vm);
 		if ( nk_contextual_item_label(ctx, name, NK_TEXT_LEFT)) {
-			// Create node
+			// Create node at context menu origin
 			lfr_node_id_t id = lfr_add_custom_node(i, graph);
-
-			// Position at cursor
-			struct nk_vec2 mouse_pos = ctx->input.mouse.pos;
-			lfr_vec2_t node_pos = {mouse_pos.x, mouse_pos.y};
-			lfr_set_node_position(id, node_pos, &graph->nodes);
+			lfr_set_node_position(id, creation_pos, &graph->nodes);
 		}
 	}
 

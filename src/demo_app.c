@@ -31,7 +31,7 @@ LFR Scripting demo app.
 #include "lfr.h"
 #include "lfr_editor.h"
 
-#define SHOW_EXAMPLE_WINDOW 0
+#define SHOW_EXAMPLE_WINDOW 1
 
 // Editor
 void run_gui(const lfr_vm_t *, lfr_graph_t *, lfr_graph_state_t *);
