@@ -755,12 +755,23 @@ Show contexual menu for creating new nodes.
 void show_node_creation_contextual_menu(const lfr_vm_t *vm, struct nk_context* ctx, lfr_graph_t *graph) {
 	assert(ctx && graph);
 
+	// Save window bounds upper left corner for later
+	// (we will ned it to get the relative position of the context menu)
+	struct nk_panel *window_panel = nk_window_get_panel(ctx);
+
 	// Open context menu - or early out if it can't be opened
 	float row_height = 25;
 	int num_rows = lfr_no_core_instructions + vm->num_custom_instructions;
 	struct nk_vec2 size = nk_vec2(150, row_height * num_rows );
 	struct nk_rect trigger_bounds = nk_window_get_bounds(ctx);
 	if (!nk_contextual_begin(ctx, 0, size, trigger_bounds)) { return; }
+
+	// Get context menu top-left corner
+	struct nk_panel *menu_panel = nk_window_get_panel(ctx);
+	lfr_vec2_t creation_pos = {
+		menu_panel->bounds.x - window_panel->bounds.x,
+		menu_panel->bounds.y - window_panel->bounds.y
+		};
 
 	// List all available options
 	nk_layout_row_dynamic(ctx, row_height -5, 1);
@@ -769,13 +780,9 @@ void show_node_creation_contextual_menu(const lfr_vm_t *vm, struct nk_context* c
 	for (int i = 0; i < lfr_no_core_instructions; i++) {
 		const char* name = lfr_get_core_instruction_name(i, vm);
 		if ( nk_contextual_item_label(ctx, name, NK_TEXT_LEFT)) {
-			// Create node
+			// Create node at context menu origin
 			lfr_node_id_t id = lfr_add_node(i, graph);
-
-			// Position at cursor
-			struct nk_vec2 mouse_pos = ctx->input.mouse.pos;
-			lfr_vec2_t node_pos = {mouse_pos.x, mouse_pos.y};
-			lfr_set_node_position(id, node_pos, &graph->nodes);
+			lfr_set_node_position(id, creation_pos, &graph->nodes);
 		}
 	}
 
@@ -783,13 +790,9 @@ void show_node_creation_contextual_menu(const lfr_vm_t *vm, struct nk_context* c
 	for (int i = 0; i < vm->num_custom_instructions; i++) {
 		const char* name = lfr_get_custom_instruction_name(i, vm);
 		if ( nk_contextual_item_label(ctx, name, NK_TEXT_LEFT)) {
-			// Create node
+			// Create node at context menu origin
 			lfr_node_id_t id = lfr_add_custom_node(i, graph);
-
-			// Position at cursor
-			struct nk_vec2 mouse_pos = ctx->input.mouse.pos;
-			lfr_vec2_t node_pos = {mouse_pos.x, mouse_pos.y};
-			lfr_set_node_position(id, node_pos, &graph->nodes);
+			lfr_set_node_position(id, creation_pos, &graph->nodes);
 		}
 	}
 
