@@ -86,7 +86,12 @@ void lfr_show_editor(lfr_editor_t *app, const lfr_vm_t *vm, lfr_graph_t *graph, 
 	assert(app && graph && state);
 	struct nk_context *ctx = app->ctx;
 
-	if (nk_begin(ctx, "Editor window", app->outer_bounds, NK_WINDOW_TITLE | NK_WINDOW_SCALABLE)) {
+	nk_flags window_flags = 0
+		| NK_WINDOW_TITLE
+		| NK_WINDOW_MOVABLE
+		| NK_WINDOW_SCALABLE
+		;
+	if (nk_begin(ctx, "Editor window", app->outer_bounds, window_flags)) {
 		// Draw lines
 		{
 			struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
