@@ -929,6 +929,7 @@ lfr_node_id_t lfr_insert_node_into_table(lfr_instruction_e inst, lfr_node_table_
 	// Set row data
 	table->node[index].instruction = inst;
 	for (int i = 0; i < lfr_signature_size; i++) {
+		table->node[index].input_data[i].node = (lfr_node_id_t) { 0 };
 		table->node[index].output_data[i] = (lfr_variant_t) { lfr_nil_type, 0};
 	}
 	table->position[index] = (lfr_vec2_t) { 0, 0};
